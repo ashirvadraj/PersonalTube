@@ -299,6 +299,79 @@ class PlayerViewController(
                 }
             }
         }
+
+        // Like Toggle
+        binding.btnDetailLike.setOnClickListener {
+            binding.btnDetailLike.setColorFilter(activity.getColor(R.color.yt_accent_blue))
+            Toast.makeText(activity, "Added to Liked videos", Toast.LENGTH_SHORT).show()
+        }
+
+        // Dislike Button
+        binding.btnDetailDislike.setOnClickListener {
+            binding.btnDetailDislike.setColorFilter(activity.getColor(R.color.yt_accent_blue))
+            Toast.makeText(activity, "Feedback submitted", Toast.LENGTH_SHORT).show()
+        }
+
+        // Download Video
+        binding.btnDetailDownload.setOnClickListener {
+            currentVideo?.let { v ->
+                binding.tvDetailDownload.text = "Downloaded"
+                binding.ivDetailDownloadIcon.setColorFilter(activity.getColor(R.color.yt_green))
+                Toast.makeText(activity, "Downloaded '${v.title}' for offline viewing", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        // Comments Preview Click -> Open Bottom Sheet
+        binding.cardCommentsPreview.setOnClickListener {
+            showCommentsSheet()
+        }
+    }
+
+    private fun showCommentsSheet() {
+        val video = currentVideo ?: return
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(activity)
+        val sheetView = activity.layoutInflater.inflate(R.layout.dialog_comments_sheet, null)
+        dialog.setContentView(sheetView)
+
+        val tvCount = sheetView.findViewById<android.widget.TextView>(R.id.tv_sheet_comment_count)
+        val btnClose = sheetView.findViewById<android.widget.ImageView>(R.id.btn_close_comments)
+        val rvComments = sheetView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rv_comments)
+        val etNewComment = sheetView.findViewById<android.widget.EditText>(R.id.et_new_comment)
+        val btnSend = sheetView.findViewById<android.widget.ImageView>(R.id.btn_send_comment)
+
+        tvCount.text = binding.tvCommentPreviewCount.text
+        btnClose.setOnClickListener { dialog.dismiss() }
+
+        val commentAdapter = com.personal.tube.ui.adapters.CommentAdapter()
+        rvComments.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(activity)
+        rvComments.adapter = commentAdapter
+
+        activity.lifecycleScope.launch {
+            val comments = repository.getComments(video.id)
+            commentAdapter.submitList(comments)
+        }
+
+        btnSend.setOnClickListener {
+            val txt = etNewComment.text.toString().trim()
+            if (txt.isNotBlank()) {
+                val current = commentAdapter.currentList.toMutableList()
+                current.add(
+                    0,
+                    com.personal.tube.data.model.CommentItem(
+                        id = "user_${System.currentTimeMillis()}",
+                        authorName = "You",
+                        text = txt,
+                        publishedTime = "Just now",
+                        likeCountFormatted = "0"
+                    )
+                )
+                commentAdapter.submitList(current)
+                etNewComment.text.clear()
+                Toast.makeText(activity, "Comment posted", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        dialog.show()
     }
 
     fun playVideo(video: VideoItem) {

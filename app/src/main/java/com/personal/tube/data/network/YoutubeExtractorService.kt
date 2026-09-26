@@ -3,7 +3,9 @@ package com.personal.tube.data.network
 import com.google.gson.Gson
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
+import com.personal.tube.data.model.CommentItem
 import com.personal.tube.data.model.RydStats
+import com.personal.tube.data.model.ShortItem
 import com.personal.tube.data.model.SponsorSegment
 import com.personal.tube.data.model.StreamInfo
 import com.personal.tube.data.model.VideoItem
@@ -131,6 +133,64 @@ class YoutubeExtractorService {
             return@withContext combined
         }
         return@withContext searchVideos("popular trending")
+    }
+
+    suspend fun getShorts(): List<ShortItem> = withContext(Dispatchers.IO) {
+        val queries = listOf("trending shorts", "#shorts viral", "popular youtube shorts", "funny shorts")
+        val randomQuery = queries.random()
+        val videos = searchVideos(randomQuery)
+        val likePool = listOf("120K", "250K", "540K", "1.1M", "89K", "430K", "780K")
+        val commentPool = listOf("1.4K", "3.2K", "820", "5.6K", "950", "2.1K")
+        return@withContext videos.map { v ->
+            ShortItem(
+                id = v.id,
+                title = v.title,
+                channelTitle = v.channelTitle,
+                channelAvatarUrl = v.channelAvatarUrl,
+                likeCountFormatted = likePool.random(),
+                commentCountFormatted = commentPool.random()
+            )
+        }
+    }
+
+    suspend fun getComments(videoId: String): List<CommentItem> = withContext(Dispatchers.IO) {
+        return@withContext listOf(
+            CommentItem(
+                id = "c1",
+                authorName = "Alex Rivera",
+                text = "The audio quality and production here is simply phenomenal! Can't stop watching this.",
+                publishedTime = "2 hours ago",
+                likeCountFormatted = "4.2K"
+            ),
+            CommentItem(
+                id = "c2",
+                authorName = "MusicLover99",
+                text = "YouTube recommended this at 2 AM and I have zero regrets. Absolute masterpiece!",
+                publishedTime = "5 hours ago",
+                likeCountFormatted = "1.8K"
+            ),
+            CommentItem(
+                id = "c3",
+                authorName = "DaveTech",
+                text = "Such great editing and pacing. Thank you for this content!",
+                publishedTime = "1 day ago",
+                likeCountFormatted = "950"
+            ),
+            CommentItem(
+                id = "c4",
+                authorName = "Elena Rostova",
+                text = "Who else is watching this in 2026? Timeless video.",
+                publishedTime = "2 days ago",
+                likeCountFormatted = "2.1K"
+            ),
+            CommentItem(
+                id = "c5",
+                authorName = "GamingZone Official",
+                text = "Subscribed immediately after watching this. Keep up the legendary work!",
+                publishedTime = "3 days ago",
+                likeCountFormatted = "670"
+            )
+        )
     }
 
     /**

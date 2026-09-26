@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:paddingHorizontal="16dp"
+    android:paddingVertical="10dp"
+    android:gravity="top">
+
+    <!-- Commenter Avatar -->
+    <com.google.android.material.imageview.ShapeableImageView
+        android:id="@+id/iv_comment_avatar"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/ic_account_circle"
+        android:tint="@color/yt_white"
+        android:background="@color/yt_card_background"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+    <!-- Comment Content -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <!-- Author Name & Relative Time -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_comment_author"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@username"
+                android:textColor="@color/yt_text_secondary"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_comment_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="2 hours ago"
+                android:textColor="@color/yt_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Comment Text -->
+        <TextView
+            android:id="@+id/tv_comment_body"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:text="This is an awesome video! Love this channel."
+            android:textColor="@color/yt_text_primary"
+            android:textSize="13sp"
+            android:lineSpacingExtra="2dp" />
+
+        <!-- Comment Actions: Thumbs up, count, thumbs down, reply -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:id="@+id/btn_comment_like"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:src="@drawable/ic_thumb_up"
+                android:tint="@color/yt_text_secondary" />
+
+            <TextView
+                android:id="@+id/tv_comment_likes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="42"
+                android:textColor="@color/yt_text_secondary"
+                android:textSize="11sp" />
+
+            <ImageView
+                android:id="@+id/btn_comment_dislike"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
+                android:layout_marginStart="16dp"
+                android:src="@drawable/ic_thumb_down"
+                android:tint="@color/yt_text_secondary" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="20dp"
+                android:text="Reply"
+                android:textColor="@color/yt_text_secondary"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

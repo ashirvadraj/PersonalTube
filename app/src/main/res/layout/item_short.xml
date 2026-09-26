@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/yt_black">
+
+    <!-- 9:16 Video Thumbnail / Preview Surface -->
+    <ImageView
+        android:id="@+id/iv_short_thumbnail"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:background="@color/yt_card_background"
+        android:contentDescription="Short Video" />
+
+    <!-- Top Dark Gradient for readability -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="120dp"
+        android:layout_gravity="top"
+        android:background="@drawable/bg_gradient_top" />
+
+    <!-- Bottom Dark Gradient for captions & actions -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="220dp"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_gradient_bottom" />
+
+    <!-- Center Play/Pause indicator icon (shown briefly on tap) -->
+    <ImageView
+        android:id="@+id/iv_center_play_pause"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_play"
+        android:tint="@color/yt_white"
+        android:alpha="0.8"
+        android:visibility="gone" />
+
+    <!-- RIGHT ACTION COLUMN (Like, Dislike, Comments, Share, Remix, Sound) -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="80dp"
+        android:layout_marginEnd="12dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <!-- Like Button -->
+        <LinearLayout
+            android:id="@+id/btn_short_like"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:id="@+id/iv_short_like_icon"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_thumb_up"
+                android:tint="@color/yt_white" />
+
+            <TextView
+                android:id="@+id/tv_short_likes"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="240K"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Dislike Button -->
+        <LinearLayout
+            android:id="@+id/btn_short_dislike"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:id="@+id/iv_short_dislike_icon"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_thumb_down"
+                android:tint="@color/yt_white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Dislike"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Comments Button -->
+        <LinearLayout
+            android:id="@+id/btn_short_comments"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_comment"
+                android:tint="@color/yt_white" />
+
+            <TextView
+                android:id="@+id/tv_short_comments"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="1.8K"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Share Button -->
+        <LinearLayout
+            android:id="@+id/btn_short_share"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_share"
+                android:tint="@color/yt_white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Share"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Remix Button -->
+        <LinearLayout
+            android:id="@+id/btn_short_remix"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:padding="8dp">
+
+            <ImageView
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_remix"
+                android:tint="@color/yt_white" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Remix"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Sound Disc Icon -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/iv_short_sound_disc"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginTop="8dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/ic_youtube_logo"
+            android:background="@color/yt_dark_surface"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Small" />
+
+    </LinearLayout>
+
+    <!-- BOTTOM LEFT INFO: Channel info, Subscribe, Caption, Audio Track -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="24dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="96dp"
+        android:orientation="vertical">
+
+        <!-- Channel Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/iv_short_channel_avatar"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_subscriptions"
+                android:tint="@color/yt_white"
+                android:background="@color/yt_card_background"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+            <TextView
+                android:id="@+id/tv_short_channel_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:text="@channel"
+                android:textColor="@color/yt_white"
+                android:textSize="14sp"
+                android:textStyle="bold" />
+
+            <!-- Subscribe Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_short_subscribe"
+                android:layout_width="wrap_content"
+                android:layout_height="34dp"
+                android:layout_marginStart="12dp"
+                android:backgroundTint="@color/yt_red"
+                android:text="@string/subscribe"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:cornerRadius="17dp" />
+        </LinearLayout>
+
+        <!-- Caption / Title -->
+        <TextView
+            android:id="@+id/tv_short_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Incredible moment caught on camera! #shorts #viral"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <!-- Sound Track Info -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="♫"
+                android:textColor="@color/yt_white"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/tv_short_sound_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="Original Sound - Creator Audio"
+                android:textColor="@color/yt_white"
+                android:textSize="12sp"
+                android:singleLine="true" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>

@@ -34,34 +34,34 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="@string/app_name"
+                android:text="YouTube"
                 android:textColor="@color/yt_white"
                 android:textSize="20sp"
                 android:textStyle="bold"
-                android:fontFamily="sans-serif-medium" />
+                android:fontFamily="sans-serif-black"
+                android:letterSpacing="-0.03" />
 
-            <!-- PiP Quick Launcher -->
+            <!-- Cast to TV Button -->
             <ImageView
-                android:id="@+id/btn_header_pip"
+                android:id="@+id/btn_header_cast"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:padding="8dp"
-                android:src="@drawable/ic_pip"
+                android:src="@drawable/ic_cast"
                 android:tint="@color/yt_white"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="@string/pip_mode"
-                android:visibility="gone" />
+                android:contentDescription="Cast" />
 
-            <!-- Voice Search Button -->
+            <!-- Notifications Bell Button -->
             <ImageView
-                android:id="@+id/btn_header_mic"
+                android:id="@+id/btn_header_notifications"
                 android:layout_width="40dp"
                 android:layout_height="40dp"
                 android:padding="8dp"
-                android:src="@drawable/ic_mic"
+                android:src="@drawable/ic_notifications"
                 android:tint="@color/yt_white"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Voice Search" />
+                android:contentDescription="Notifications" />
 
             <!-- Search Button -->
             <ImageView
@@ -74,23 +74,12 @@
                 android:background="?selectableItemBackgroundBorderless"
                 android:contentDescription="@string/nav_search" />
 
-            <!-- Settings / Info Button -->
-            <ImageView
-                android:id="@+id/btn_header_settings"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:padding="8dp"
-                android:src="@drawable/ic_settings"
-                android:tint="@color/yt_white"
-                android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="Settings" />
-
             <!-- Google Account / Profile Button -->
             <com.google.android.material.imageview.ShapeableImageView
                 android:id="@+id/btn_header_profile"
                 android:layout_width="32dp"
                 android:layout_height="32dp"
-                android:layout_marginStart="4dp"
+                android:layout_marginStart="6dp"
                 android:scaleType="centerCrop"
                 android:src="@drawable/ic_account_circle"
                 android:background="?selectableItemBackgroundBorderless"

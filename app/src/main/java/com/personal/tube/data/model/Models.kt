@@ -56,3 +56,25 @@ data class ChannelInfo(
     val subscriberCount: String = "",
     val videoCount: Long = 0L
 )
+
+data class CommentItem(
+    val id: String,
+    val authorName: String,
+    val authorAvatarUrl: String = "",
+    val text: String,
+    val publishedTime: String = "2 hours ago",
+    val likeCountFormatted: String = "1.2K",
+    var isLiked: Boolean = false
+)
+
+data class ShortItem(
+    val id: String,
+    val title: String,
+    val channelTitle: String,
+    val channelAvatarUrl: String = "",
+    val likeCountFormatted: String = "240K",
+    val commentCountFormatted: String = "1.8K",
+    var isSubscribed: Boolean = false,
+    var isLiked: Boolean = false
+)
+

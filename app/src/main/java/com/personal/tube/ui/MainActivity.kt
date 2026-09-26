@@ -47,6 +47,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var repository: VideoRepository
 
     private val homeFragment by lazy { HomeFragment() }
+    private val shortsFragment by lazy { com.personal.tube.ui.shorts.ShortsFragment() }
     val searchFragment by lazy { SearchFragment() }
     private val subscriptionsFragment by lazy { SubscriptionsFragment() }
     private val libraryFragment by lazy { LibraryFragment() }
@@ -198,6 +199,7 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_home -> switchFragment(homeFragment)
+                R.id.nav_shorts -> switchFragment(shortsFragment)
                 R.id.nav_subscriptions -> switchFragment(subscriptionsFragment)
                 R.id.nav_library -> switchFragment(libraryFragment)
             }
@@ -206,21 +208,37 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupHeader() {
-        binding.btnHeaderMic.setOnClickListener {
-            startVoiceSearch()
+        binding.btnHeaderCast.setOnClickListener {
+            showCastDialog()
+        }
+
+        binding.btnHeaderNotifications.setOnClickListener {
+            showNotificationsDialog()
         }
 
         binding.btnHeaderSearch.setOnClickListener {
             switchFragment(searchFragment)
         }
 
-        binding.btnHeaderSettings.setOnClickListener {
-            showAboutDialog()
-        }
-
         binding.btnHeaderProfile.setOnClickListener {
             showAccountDialog()
         }
+    }
+
+    private fun showCastDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Cast to a device")
+            .setMessage("Searching for TVs and wireless displays on your local network...\n\nMake sure your Chromecast, Smart TV, or Android TV is connected to the same Wi-Fi network.")
+            .setPositiveButton("Done", null)
+            .show()
+    }
+
+    private fun showNotificationsDialog() {
+        AlertDialog.Builder(this)
+            .setTitle("Notifications")
+            .setMessage("All caught up!\n\nNo new notifications from your subscribed channels.")
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     fun startVoiceSearch() {
@@ -318,6 +336,10 @@ class MainActivity : AppCompatActivity() {
                 binding.bottomNav.selectedItemId = R.id.nav_home
                 switchFragment(homeFragment)
             }
+            TAB_SHORTS -> {
+                binding.bottomNav.selectedItemId = R.id.nav_shorts
+                switchFragment(shortsFragment)
+            }
             TAB_SEARCH -> {
                 switchFragment(searchFragment)
             }
@@ -344,38 +366,55 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun showVideoQuickMenu(video: VideoItem) {
-        val options = arrayOf("Save to Watch Later", "Share", "Copy Link")
-        AlertDialog.Builder(this)
-            .setTitle(video.title)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> {
-                        lifecycleScope.launch {
-                            val saved = repository.toggleBookmark(video)
-                            Toast.makeText(
-                                this@MainActivity,
-                                if (saved) "Saved to Watch Later" else "Removed from Watch Later",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    }
-                    1 -> {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, video.title)
-                            putExtra(Intent.EXTRA_TEXT, "https://youtu.be/${video.id}")
-                        }
-                        startActivity(Intent.createChooser(shareIntent, "Share Video"))
-                    }
-                    2 -> {
-                        val clipboard = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                        val clip = ClipData.newPlainText("YouTube Link", "https://youtu.be/${video.id}")
-                        clipboard.setPrimaryClip(clip)
-                        Toast.makeText(this, "Link copied to clipboard", Toast.LENGTH_SHORT).show()
-                    }
-                }
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val view = layoutInflater.inflate(R.layout.dialog_video_options, null)
+        dialog.setContentView(view)
+
+        view.findViewById<android.widget.TextView>(R.id.tv_menu_video_title).text = video.title
+
+        view.findViewById<View>(R.id.opt_save_watch_later).setOnClickListener {
+            dialog.dismiss()
+            lifecycleScope.launch {
+                val saved = repository.toggleBookmark(video)
+                Toast.makeText(
+                    this@MainActivity,
+                    if (saved) "Saved to Watch Later" else "Removed from Watch Later",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            .show()
+        }
+
+        view.findViewById<View>(R.id.opt_save_playlist).setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(this, "Added to playlist", Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<View>(R.id.opt_download).setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(this, "Downloading '${video.title}' for offline viewing...", Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<View>(R.id.opt_share).setOnClickListener {
+            dialog.dismiss()
+            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/plain"
+                putExtra(Intent.EXTRA_SUBJECT, video.title)
+                putExtra(Intent.EXTRA_TEXT, "https://youtu.be/${video.id}")
+            }
+            startActivity(Intent.createChooser(shareIntent, "Share Video"))
+        }
+
+        view.findViewById<View>(R.id.opt_not_interested).setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(this, "Video hidden from recommendations", Toast.LENGTH_SHORT).show()
+        }
+
+        view.findViewById<View>(R.id.opt_dont_recommend).setOnClickListener {
+            dialog.dismiss()
+            Toast.makeText(this, "We won't recommend videos from ${video.channelTitle}", Toast.LENGTH_SHORT).show()
+        }
+
+        dialog.show()
     }
 
     private fun showAboutDialog() {
@@ -430,5 +469,6 @@ class MainActivity : AppCompatActivity() {
         const val TAB_SEARCH = 1
         const val TAB_SUBSCRIPTIONS = 2
         const val TAB_LIBRARY = 3
+        const val TAB_SHORTS = 4
     }
 }

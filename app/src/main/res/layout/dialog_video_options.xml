@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/yt_dark_surface"
+    android:paddingVertical="12dp">
+
+    <!-- Top Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="12dp"
+        android:background="@drawable/bg_pill_button"
+        android:backgroundTint="@color/yt_border" />
+
+    <!-- Video Title Header -->
+    <TextView
+        android:id="@+id/tv_menu_video_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="20dp"
+        android:paddingBottom="8dp"
+        android:text="Video Title Here"
+        android:textColor="@color/yt_text_secondary"
+        android:textSize="13sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/yt_divider"
+        android:layout_marginBottom="4dp" />
+
+    <!-- Save to Watch Later -->
+    <LinearLayout
+        android:id="@+id/opt_save_watch_later"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_bookmark"
+            android:tint="@color/yt_white" />
+
+        <TextView
+            android:id="@+id/tv_opt_watch_later"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:text="Save to Watch Later"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Save to Playlist -->
+    <LinearLayout
+        android:id="@+id/opt_save_playlist"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_playlist_add"
+            android:tint="@color/yt_white" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:text="Save to playlist"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Download Video -->
+    <LinearLayout
+        android:id="@+id/opt_download"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_download"
+            android:tint="@color/yt_white" />
+
+        <TextView
+            android:id="@+id/tv_opt_download"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:text="Download video"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Share -->
+    <LinearLayout
+        android:id="@+id/opt_share"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_share"
+            android:tint="@color/yt_white" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:text="Share"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Not Interested -->
+    <LinearLayout
+        android:id="@+id/opt_not_interested"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_not_interested"
+            android:tint="@color/yt_white" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:text="Not interested"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- Don't Recommend Channel -->
+    <LinearLayout
+        android:id="@+id/opt_dont_recommend"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="20dp"
+        android:background="?selectableItemBackground">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/yt_white" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="20dp"
+            android:text="Don't recommend channel"
+            android:textColor="@color/yt_white"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+</LinearLayout>

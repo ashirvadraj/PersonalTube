@@ -2,9 +2,12 @@
 <resources>
     <string name="app_name">PersonalTube</string>
     <string name="nav_home">Home</string>
+    <string name="nav_shorts">Shorts</string>
     <string name="nav_search">Search</string>
     <string name="nav_subscriptions">Subscriptions</string>
-    <string name="nav_library">Library</string>
+    <string name="nav_library">You</string>
+    <string name="comments">Comments</string>
+    <string name="add_comment">Add a comment...</string>
 
     <string name="search_hint">Search YouTube...</string>
     <string name="category_all">All</string>

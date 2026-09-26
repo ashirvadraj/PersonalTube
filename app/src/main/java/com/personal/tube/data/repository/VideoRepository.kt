@@ -23,6 +23,14 @@ class VideoRepository(context: Context) {
         return extractor.getTrendingVideos(category)
     }
 
+    suspend fun getShorts(): List<com.personal.tube.data.model.ShortItem> {
+        return extractor.getShorts()
+    }
+
+    suspend fun getComments(videoId: String): List<com.personal.tube.data.model.CommentItem> {
+        return extractor.getComments(videoId)
+    }
+
     suspend fun search(query: String): List<VideoItem> {
         return extractor.searchVideos(query)
     }

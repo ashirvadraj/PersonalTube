@@ -57,8 +57,19 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupCategories() {
-        binding.chipGroupCategories.setOnCheckedStateChangeListener { _, checkedIds ->
+        binding.chipGroupCategories.setOnCheckedStateChangeListener { group, checkedIds ->
             if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
+            for (i in 0 until group.childCount) {
+                val chip = group.getChildAt(i) as? com.google.android.material.chip.Chip ?: continue
+                if (chip.id == checkedIds.first()) {
+                    chip.setChipBackgroundColorResource(R.color.yt_chip_selected)
+                    chip.setTextColor(requireContext().getColor(R.color.yt_chip_selected_text))
+                } else {
+                    chip.setChipBackgroundColorResource(R.color.yt_chip_background)
+                    chip.setTextColor(requireContext().getColor(R.color.yt_text_primary))
+                }
+            }
+
             val category = when (checkedIds.first()) {
                 R.id.chip_trending -> "Trending"
                 R.id.chip_music -> "Music"

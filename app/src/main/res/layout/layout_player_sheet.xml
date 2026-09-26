@@ -373,6 +373,85 @@
 
                 </com.google.android.material.card.MaterialCardView>
 
+                <!-- Comments Preview Card (YouTube Style) -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_comments_preview"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="@color/yt_card_background"
+                    app:cardCornerRadius="10dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Comments"
+                                android:textColor="@color/yt_white"
+                                android:textSize="13sp"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:id="@+id/tv_comment_preview_count"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:text="1.8K"
+                                android:textColor="@color/yt_text_secondary"
+                                android:textSize="12sp" />
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="16dp"
+                                android:src="@drawable/ic_more_vert"
+                                android:tint="@color/yt_text_secondary"
+                                android:contentDescription="Expand Comments" />
+                        </LinearLayout>
+
+                        <!-- Top comment preview snippet -->
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:layout_marginTop="8dp">
+
+                            <ImageView
+                                android:id="@+id/iv_top_comment_avatar"
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_account_circle"
+                                android:tint="@color/yt_text_secondary" />
+
+                            <TextView
+                                android:id="@+id/tv_top_comment_text"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:layout_marginStart="8dp"
+                                android:text="This is an incredible performance! Pure magic."
+                                android:textColor="@color/yt_text_primary"
+                                android:textSize="12sp"
+                                android:singleLine="true"
+                                android:ellipsize="end" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
                 <!-- Related Videos Section -->
                 <TextView
                     android:layout_width="wrap_content"
