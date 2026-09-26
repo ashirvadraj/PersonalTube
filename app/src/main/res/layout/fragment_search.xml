@@ -52,6 +52,17 @@
             android:contentDescription="Clear"
             android:visibility="gone" />
 
+        <!-- Microphone Voice Search Button -->
+        <ImageView
+            android:id="@+id/btn_search_mic"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_mic"
+            android:tint="@color/yt_white"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Voice Search" />
+
     </LinearLayout>
 
     <FrameLayout

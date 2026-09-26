@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import android.speech.RecognizerIntent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
@@ -42,9 +43,21 @@ class MainActivity : AppCompatActivity() {
     private lateinit var repository: VideoRepository
 
     private val homeFragment by lazy { HomeFragment() }
-    private val searchFragment by lazy { SearchFragment() }
+    val searchFragment by lazy { SearchFragment() }
     private val subscriptionsFragment by lazy { SubscriptionsFragment() }
     private val libraryFragment by lazy { LibraryFragment() }
+
+    private val voiceSearchLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
+            if (!spokenText.isNullOrBlank()) {
+                selectNavigationTab(TAB_SEARCH)
+                searchFragment.searchQueryFromExternal(spokenText)
+            }
+        }
+    }
 
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -140,6 +153,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupHeader() {
+        binding.btnHeaderMic.setOnClickListener {
+            startVoiceSearch()
+        }
+
         binding.btnHeaderSearch.setOnClickListener {
             switchFragment(searchFragment)
         }
@@ -150,6 +167,18 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnHeaderProfile.setOnClickListener {
             showAccountDialog()
+        }
+    }
+
+    fun startVoiceSearch() {
+        try {
+            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak to search YouTube...")
+            }
+            voiceSearchLauncher.launch(intent)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Voice search is not supported on this device", Toast.LENGTH_SHORT).show()
         }
     }
 

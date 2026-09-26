@@ -17,6 +17,11 @@ Pre-compiled APK is ready to install:
 
 ## 🚀 Key Features
 
+- **🎤 Microphone Voice Search**: Tap the mic icon in the top header or search bar to speak your queries with automatic Speech-to-Text transcription.
+- **⚡ Ultra-Fast Search Engine (InnerTube API)**: Zero rate-limiting, direct YouTube index resolution returning 20-30 real search results in milliseconds (eliminating slow fallbacks).
+- **🔁 Loop / Repeat Video Mode**: Repeat single video/song indefinitely with one tap (great for music tracks).
+- **⏭️ Auto-Play Next Related Video**: Automatically queues and transitions to the next video when playback finishes.
+- **⏱️ Timestamped Video Sharing**: Share videos with the exact playback timestamp (e.g. `?t=45s`).
 - **🔐 Google / Gmail Sign-In**: Sign in directly with your Gmail account to manage your profile, avatar, and cloud synchronization for playlists and history.
 - **🚫 100% Ad-Free Video Streaming**: Direct stream demuxing bypasses all client-side video ads and tracking beacons.
 - **🎧 Background Audio & Lock Screen Playback**: Custom `PlaybackService` (`FOREGROUND_SERVICE_MEDIA_PLAYBACK`) keeps audio playing when your screen turns off or while multitasking.

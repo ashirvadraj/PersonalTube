@@ -30,6 +30,7 @@ object ExoPlayerHolder {
         fun onPlaybackStateChanged(isPlaying: Boolean, isBuffering: Boolean)
         fun onPositionDiscontinuity(positionMs: Long, durationMs: Long)
         fun onVideoChanged(video: VideoItem)
+        fun onPlaybackEnded() {}
     }
 
     private val listeners = CopyOnWriteArrayList<PlayerStateListener>()
@@ -59,6 +60,9 @@ object ExoPlayerHolder {
                 override fun onPlaybackStateChanged(playbackState: Int) {
                     val isBuffering = playbackState == Player.STATE_BUFFERING
                     notifyState(player.isPlaying, isBuffering)
+                    if (playbackState == Player.STATE_ENDED) {
+                        listeners.forEach { it.onPlaybackEnded() }
+                    }
                 }
             })
 

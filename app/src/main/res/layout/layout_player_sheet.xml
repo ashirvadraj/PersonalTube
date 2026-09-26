@@ -66,6 +66,17 @@
                 android:background="?selectableItemBackgroundBorderless"
                 android:contentDescription="Background Audio" />
 
+            <!-- Loop / Repeat Toggle -->
+            <ImageView
+                android:id="@+id/btn_toggle_repeat"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_repeat"
+                android:tint="@color/yt_white"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="Loop Video" />
+
         </LinearLayout>
 
         <!-- Video Surface Container (16:9 Aspect Ratio) -->

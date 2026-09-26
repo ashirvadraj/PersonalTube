@@ -32,6 +32,8 @@ class PlayerViewController(
     private var streamInfo: StreamInfo? = null
     private var isExpanded = true
     private var isUserTrackingSeekBar = false
+    private var isRepeatEnabled = false
+    private val currentRelatedVideos = mutableListOf<VideoItem>()
 
     private val relatedAdapter = VideoAdapter(
         onVideoClick = { video ->
@@ -112,6 +114,20 @@ class PlayerViewController(
             }
         }
 
+        // Loop / Repeat Toggle
+        binding.btnToggleRepeat.setOnClickListener {
+            isRepeatEnabled = !isRepeatEnabled
+            val player = ExoPlayerHolder.getPlayer(activity)
+            player.repeatMode = if (isRepeatEnabled) androidx.media3.common.Player.REPEAT_MODE_ONE else androidx.media3.common.Player.REPEAT_MODE_OFF
+            if (isRepeatEnabled) {
+                binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_green))
+                Toast.makeText(activity, "Repeat Mode: ON (Looping song)", Toast.LENGTH_SHORT).show()
+            } else {
+                binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_white))
+                Toast.makeText(activity, "Repeat Mode: OFF", Toast.LENGTH_SHORT).show()
+            }
+        }
+
         // Quality Switcher
         binding.btnSelectQuality.setOnClickListener {
             showQualityDialog()
@@ -128,13 +144,15 @@ class PlayerViewController(
             binding.tvDetailDescription.maxLines = if (isSingle) 100 else 3
         }
 
-        // Share
+        // Share with Exact Timestamp
         binding.btnDetailShare.setOnClickListener {
             currentVideo?.let { video ->
+                val currentSec = ExoPlayerHolder.getPlayer(activity).currentPosition / 1000
+                val shareUrl = if (currentSec > 5) "https://youtu.be/${video.id}?t=${currentSec}s" else "https://youtu.be/${video.id}"
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
                     putExtra(Intent.EXTRA_SUBJECT, video.title)
-                    putExtra(Intent.EXTRA_TEXT, "https://youtu.be/${video.id}")
+                    putExtra(Intent.EXTRA_TEXT, "${video.title}\n$shareUrl")
                 }
                 activity.startActivity(Intent.createChooser(intent, "Share video"))
             }
@@ -252,7 +270,10 @@ class PlayerViewController(
             // Fetch related feed
             launch {
                 val related = repository.getFeed("Trending")
-                relatedAdapter.submitList(related.filter { it.id != video.id })
+                val filtered = related.filter { it.id != video.id }
+                currentRelatedVideos.clear()
+                currentRelatedVideos.addAll(filtered)
+                relatedAdapter.submitList(filtered)
             }
 
             // Fetch SponsorBlock
@@ -364,6 +385,14 @@ class PlayerViewController(
 
     override fun onVideoChanged(video: VideoItem) {
         currentVideo = video
+    }
+
+    override fun onPlaybackEnded() {
+        if (!isRepeatEnabled && currentRelatedVideos.isNotEmpty()) {
+            val nextVideo = currentRelatedVideos.removeAt(0)
+            Toast.makeText(activity, "Auto-playing next: ${nextVideo.title}", Toast.LENGTH_SHORT).show()
+            playVideo(nextVideo)
+        }
     }
 
     fun destroy() {

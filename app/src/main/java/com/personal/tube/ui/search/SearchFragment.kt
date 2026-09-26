@@ -44,6 +44,11 @@ class SearchFragment : Fragment() {
 
         setupAdapters()
         setupListeners()
+
+        pendingQuery?.let {
+            searchQueryFromExternal(it)
+            pendingQuery = null
+        }
     }
 
     private fun setupAdapters() {
@@ -74,6 +79,10 @@ class SearchFragment : Fragment() {
     }
 
     private fun setupListeners() {
+        binding.btnSearchMic.setOnClickListener {
+            (activity as? MainActivity)?.startVoiceSearch()
+        }
+
         binding.btnSearchBack.setOnClickListener {
             (activity as? MainActivity)?.selectNavigationTab(MainActivity.TAB_HOME)
         }
@@ -101,10 +110,23 @@ class SearchFragment : Fragment() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val text = s?.toString() ?: ""
                 binding.btnSearchClear.visibility = if (text.isNotEmpty()) View.VISIBLE else View.GONE
+                binding.btnSearchMic.visibility = if (text.isEmpty()) View.VISIBLE else View.GONE
                 fetchSuggestions(text)
             }
             override fun afterTextChanged(s: Editable?) {}
         })
+    }
+
+    private var pendingQuery: String? = null
+
+    fun searchQueryFromExternal(query: String) {
+        if (_binding != null) {
+            binding.etSearchQuery.setText(query)
+            binding.etSearchQuery.setSelection(query.length)
+            performSearch(query)
+        } else {
+            pendingQuery = query
+        }
     }
 
     private fun fetchSuggestions(query: String) {
