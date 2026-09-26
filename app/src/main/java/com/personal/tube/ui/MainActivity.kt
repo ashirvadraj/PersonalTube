@@ -409,7 +409,6 @@ class MainActivity : AppCompatActivity() {
             binding.bottomNav.visibility = View.GONE
             binding.fragmentContainer.visibility = View.GONE
             playerBinding.playerTopBar.visibility = View.GONE
-            playerBinding.playerControlsOverlay.visibility = View.GONE
             playerBinding.layoutMiniPlayer.visibility = View.GONE
             playerBinding.scrollVideoDetails.visibility = View.GONE
         } else {

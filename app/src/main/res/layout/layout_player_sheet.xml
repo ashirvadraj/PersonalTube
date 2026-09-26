@@ -86,14 +86,13 @@
             android:layout_height="wrap_content"
             android:background="#000000">
 
-            <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
-                android:id="@+id/youtube_player_view"
+            <WebView
+                android:id="@+id/player_web_view"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="16:9"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:enableAutomaticInitialization="false" />
+                app:layout_constraintBottom_toBottomOf="parent" />
 
             <!-- Buffering Spinner centered directly over the player -->
             <ProgressBar
@@ -101,141 +100,11 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:indeterminateTint="@color/yt_red"
-                app:layout_constraintTop_toTopOf="@id/youtube_player_view"
-                app:layout_constraintBottom_toBottomOf="@id/youtube_player_view"
-                app:layout_constraintStart_toStartOf="@id/youtube_player_view"
-                app:layout_constraintEnd_toEndOf="@id/youtube_player_view"
+                app:layout_constraintTop_toTopOf="@id/player_web_view"
+                app:layout_constraintBottom_toBottomOf="@id/player_web_view"
+                app:layout_constraintStart_toStartOf="@id/player_web_view"
+                app:layout_constraintEnd_toEndOf="@id/player_web_view"
                 android:visibility="gone" />
-
-            <!-- Custom Controls Overlay (hidden by default so touches hit player directly) -->
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:id="@+id/player_controls_overlay"
-                android:layout_width="match_parent"
-                android:layout_height="0dp"
-                android:visibility="gone"
-                android:background="@color/yt_player_overlay"
-                app:layout_constraintTop_toTopOf="@id/youtube_player_view"
-                app:layout_constraintBottom_toBottomOf="@id/youtube_player_view">
-
-                <!-- Rewind 10s -->
-                <ImageView
-                    android:id="@+id/btn_rewind_10"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_replay_10"
-                    android:tint="@color/yt_white"
-                    android:background="?selectableItemBackgroundBorderless"
-                    app:layout_constraintEnd_toStartOf="@id/btn_play_pause"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    android:layout_marginEnd="32dp"
-                    android:contentDescription="Rewind 10 seconds" />
-
-                <!-- Play/Pause Button -->
-                <ImageView
-                    android:id="@+id/btn_play_pause"
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    android:padding="12dp"
-                    android:src="@drawable/ic_pause"
-                    android:tint="@color/yt_white"
-                    android:background="?selectableItemBackgroundBorderless"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    android:contentDescription="Play/Pause" />
-
-                <!-- Forward 10s -->
-                <ImageView
-                    android:id="@+id/btn_forward_10"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:padding="8dp"
-                    android:src="@drawable/ic_forward_10"
-                    android:tint="@color/yt_white"
-                    android:background="?selectableItemBackgroundBorderless"
-                    app:layout_constraintStart_toEndOf="@id/btn_play_pause"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    android:layout_marginStart="32dp"
-                    android:contentDescription="Forward 10 seconds" />
-
-
-
-                <!-- Speed & Quality Options -->
-                <LinearLayout
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_margin="8dp"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent">
-
-                    <TextView
-                        android:id="@+id/btn_select_speed"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="1.0x"
-                        android:textColor="@color/yt_white"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:padding="6dp"
-                        android:background="?selectableItemBackgroundBorderless" />
-
-                    <TextView
-                        android:id="@+id/btn_select_quality"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="HD"
-                        android:textColor="@color/yt_white"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:padding="6dp"
-                        android:background="?selectableItemBackgroundBorderless" />
-
-                </LinearLayout>
-
-                <!-- Bottom Bar: Time and Seekbar -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="12dp"
-                    android:paddingBottom="4dp"
-                    app:layout_constraintBottom_toBottomOf="parent">
-
-                    <TextView
-                        android:id="@+id/tv_player_current_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="00:00"
-                        android:textColor="@color/yt_white"
-                        android:textSize="12sp" />
-
-                    <SeekBar
-                        android:id="@+id/player_seek_bar"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:progressTint="@color/yt_red"
-                        android:thumbTint="@color/yt_red"
-                        android:secondaryProgressTint="#66FFFFFF" />
-
-                    <TextView
-                        android:id="@+id/tv_player_total_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="00:00"
-                        android:textColor="@color/yt_white"
-                        android:textSize="12sp" />
-
-                </LinearLayout>
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

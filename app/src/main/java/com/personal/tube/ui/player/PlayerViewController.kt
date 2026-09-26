@@ -1,8 +1,15 @@
 package com.personal.tube.ui.player
 
-import android.app.AlertDialog
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.view.View
+import android.webkit.JavascriptInterface
+import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -15,10 +22,6 @@ import com.personal.tube.data.repository.VideoRepository
 import com.personal.tube.databinding.LayoutPlayerSheetBinding
 import com.personal.tube.ui.adapters.VideoAdapter
 import com.personal.tube.util.FormatUtils
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
-import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
 import kotlinx.coroutines.launch
 
 class PlayerViewController(
@@ -28,14 +31,13 @@ class PlayerViewController(
     private val onVideoSelect: (VideoItem) -> Unit
 ) {
 
-    private var youTubePlayer: YouTubePlayer? = null
-    private var isPlayerInitialized = false
     private var isPlayingState = false
-    private var currentVideo: VideoItem? = null
-    private var pendingVideoToPlay: VideoItem? = null
     private var isRepeatEnabled = false
+    private var currentVideo: VideoItem? = null
     private var currentSecond = 0f
     private var videoDuration = 0f
+    private var customFullscreenView: View? = null
+    private var customFullscreenCallback: WebChromeClient.CustomViewCallback? = null
 
     private val currentRelatedVideos = mutableListOf<VideoItem>()
     private val sponsorSegments = mutableListOf<SponsorSegment>()
@@ -49,11 +51,121 @@ class PlayerViewController(
     init {
         setupListeners()
         setupRelatedRecycler()
+        setupWebView()
     }
 
     private fun setupRelatedRecycler() {
         binding.rvRelatedVideos.layoutManager = LinearLayoutManager(activity)
         binding.rvRelatedVideos.adapter = relatedAdapter
+    }
+
+    @SuppressLint("SetJavaScriptEnabled")
+    private fun setupWebView() {
+        binding.playerWebView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            allowFileAccess = true
+            useWideViewPort = true
+            loadWithOverviewMode = true
+            cacheMode = WebSettings.LOAD_DEFAULT
+            userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        }
+
+        binding.playerWebView.webChromeClient = object : WebChromeClient() {
+            override fun onShowCustomView(view: View?, callback: CustomViewCallback?) {
+                super.onShowCustomView(view, callback)
+                if (customFullscreenView != null) {
+                    callback?.onCustomViewHidden()
+                    return
+                }
+                customFullscreenView = view
+                customFullscreenCallback = callback
+                binding.playerRootContainer.addView(view)
+                binding.layoutExpandedPlayer.visibility = View.GONE
+            }
+
+            override fun onHideCustomView() {
+                super.onHideCustomView()
+                if (customFullscreenView != null) {
+                    binding.playerRootContainer.removeView(customFullscreenView)
+                    customFullscreenView = null
+                    customFullscreenCallback?.onCustomViewHidden()
+                    binding.layoutExpandedPlayer.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        binding.playerWebView.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView?, url: String?) {
+                super.onPageFinished(view, url)
+                binding.playerBufferingSpinner.visibility = View.GONE
+            }
+
+            override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+                super.onReceivedError(view, request, error)
+                binding.playerBufferingSpinner.visibility = View.GONE
+            }
+        }
+
+        binding.playerWebView.addJavascriptInterface(AndroidBridge(), "AndroidBridge")
+    }
+
+    private inner class AndroidBridge {
+        @JavascriptInterface
+        fun onReady() {
+            activity.runOnUiThread {
+                binding.playerBufferingSpinner.visibility = View.GONE
+            }
+        }
+
+        @JavascriptInterface
+        fun onStateChange(state: Int) {
+            activity.runOnUiThread {
+                when (state) {
+                    1 -> { // PLAYING
+                        isPlayingState = true
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_pause)
+                    }
+                    2 -> { // PAUSED
+                        isPlayingState = false
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+                    }
+                    3 -> { // BUFFERING
+                        binding.playerBufferingSpinner.visibility = View.VISIBLE
+                    }
+                    0 -> { // ENDED
+                        isPlayingState = false
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+                        onPlaybackEnded()
+                    }
+                    else -> {
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                    }
+                }
+            }
+        }
+
+        @JavascriptInterface
+        fun onTimeUpdate(time: Float, duration: Float) {
+            activity.runOnUiThread {
+                currentSecond = time
+                videoDuration = duration
+                checkSponsorSegments(time)
+            }
+        }
+
+        @JavascriptInterface
+        fun onError(code: Int) {
+            activity.runOnUiThread {
+                binding.playerBufferingSpinner.visibility = View.GONE
+            }
+        }
     }
 
     private fun setupListeners() {
@@ -68,9 +180,9 @@ class PlayerViewController(
 
         binding.btnMiniPlayPause.setOnClickListener {
             if (isPlayingState) {
-                youTubePlayer?.pause()
+                pauseVideo()
             } else {
-                youTubePlayer?.play()
+                resumeVideo()
             }
         }
 
@@ -99,7 +211,7 @@ class PlayerViewController(
             isRepeatEnabled = !isRepeatEnabled
             if (isRepeatEnabled) {
                 binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_green))
-                Toast.makeText(activity, "Repeat Mode: ON (Looping song)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Repeat Mode: ON (Looping)", Toast.LENGTH_SHORT).show()
             } else {
                 binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_white))
                 Toast.makeText(activity, "Repeat Mode: OFF", Toast.LENGTH_SHORT).show()
@@ -158,7 +270,7 @@ class PlayerViewController(
 
     fun playVideo(video: VideoItem) {
         currentVideo = video
-        pendingVideoToPlay = video
+        currentSecond = 0f
         expandToFullPlayer()
 
         // Populate basic metadata immediately
@@ -180,15 +292,17 @@ class PlayerViewController(
             updateSubscribeButton(isSub)
         }
 
+        // Show spinner and register safety auto-dismiss timeout
         binding.playerBufferingSpinner.visibility = View.VISIBLE
+        binding.playerBufferingSpinner.postDelayed({
+            if (binding.playerBufferingSpinner.visibility == View.VISIBLE) {
+                binding.playerBufferingSpinner.visibility = View.GONE
+            }
+        }, 3000)
 
-        // Start playback
-        if (isPlayerInitialized && youTubePlayer != null) {
-            youTubePlayer?.loadVideo(video.id, 0f)
-            youTubePlayer?.play()
-        } else {
-            initYouTubePlayer(video)
-        }
+        // Load video embed with Origin: https://www.youtube.com
+        val embedHtml = buildEmbedHtml(video.id)
+        binding.playerWebView.loadDataWithBaseURL("https://www.youtube.com", embedHtml, "text/html", "UTF-8", null)
 
         // Log into Watch History Room DB
         activity.lifecycleScope.launch {
@@ -217,74 +331,135 @@ class PlayerViewController(
         }
     }
 
-    private fun initYouTubePlayer(initialVideo: VideoItem) {
-        if (isPlayerInitialized) return
-
-        activity.lifecycle.addObserver(binding.youtubePlayerView)
-
-        val options = IFramePlayerOptions.Builder()
-            .controls(1)
-            .rel(0)
-            .ivLoadPolicy(3)
-            .build()
-
-        binding.youtubePlayerView.initialize(object : AbstractYouTubePlayerListener() {
-            override fun onReady(player: YouTubePlayer) {
-                youTubePlayer = player
-                isPlayerInitialized = true
-                val target = pendingVideoToPlay ?: currentVideo ?: initialVideo
-                player.loadVideo(target.id, 0f)
-                player.play()
-            }
-
-            override fun onStateChange(player: YouTubePlayer, state: PlayerConstants.PlayerState) {
-                when (state) {
-                    PlayerConstants.PlayerState.PLAYING -> {
-                        isPlayingState = true
-                        binding.playerBufferingSpinner.visibility = View.GONE
-                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_pause)
+    private fun buildEmbedHtml(videoId: String): String {
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head>
+              <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+              <style>
+                * { margin: 0; padding: 0; box-sizing: border-box; background: #000; }
+                html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
+                iframe { width: 100%; height: 100%; border: 0; position: absolute; top: 0; left: 0; }
+              </style>
+            </head>
+            <body>
+              <iframe id="player"
+                src="https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&controls=1&fs=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowfullscreen>
+              </iframe>
+              <script>
+                var player;
+                function onYouTubeIframeAPIReady() {
+                  player = new YT.Player('player', {
+                    events: {
+                      'onReady': onPlayerReady,
+                      'onStateChange': onPlayerStateChange,
+                      'onError': onPlayerError
                     }
-                    PlayerConstants.PlayerState.PAUSED -> {
-                        isPlayingState = false
-                        binding.playerBufferingSpinner.visibility = View.GONE
-                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
-                    }
-                    PlayerConstants.PlayerState.BUFFERING -> {
-                        binding.playerBufferingSpinner.visibility = View.VISIBLE
-                    }
-                    PlayerConstants.PlayerState.ENDED -> {
-                        isPlayingState = false
-                        binding.playerBufferingSpinner.visibility = View.GONE
-                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
-                        onPlaybackEnded()
-                    }
-                    else -> {}
+                  });
                 }
-            }
 
-            override fun onCurrentSecond(player: YouTubePlayer, second: Float) {
-                currentSecond = second
-                checkSponsorSegments(second)
-            }
-
-            override fun onVideoDuration(player: YouTubePlayer, duration: Float) {
-                videoDuration = duration
-            }
-
-            override fun onError(player: YouTubePlayer, error: PlayerConstants.PlayerError) {
-                binding.playerBufferingSpinner.visibility = View.GONE
-                currentVideo?.let { v ->
-                    player.cueVideo(v.id, 0f)
+                function onPlayerReady(event) {
+                  if (window.AndroidBridge) {
+                    window.AndroidBridge.onReady();
+                  }
+                  setInterval(function() {
+                    try {
+                      if (player && player.getCurrentTime) {
+                        var cur = player.getCurrentTime();
+                        var dur = player.getDuration();
+                        if (window.AndroidBridge) {
+                          window.AndroidBridge.onTimeUpdate(cur, dur);
+                        }
+                      }
+                    } catch(e) {}
+                  }, 500);
                 }
-            }
-        }, options)
+
+                function onPlayerStateChange(event) {
+                  if (window.AndroidBridge) {
+                    window.AndroidBridge.onStateChange(event.data);
+                  }
+                }
+
+                function onPlayerError(event) {
+                  if (window.AndroidBridge) {
+                    window.AndroidBridge.onError(event.data);
+                  }
+                }
+
+                function nativePlay() {
+                  try {
+                    if (player && player.playVideo) {
+                      player.playVideo();
+                    } else {
+                      var f = document.getElementById('player');
+                      if (f && f.contentWindow) {
+                        f.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+                      }
+                    }
+                  } catch(e) {}
+                }
+
+                function nativePause() {
+                  try {
+                    if (player && player.pauseVideo) {
+                      player.pauseVideo();
+                    } else {
+                      var f = document.getElementById('player');
+                      if (f && f.contentWindow) {
+                        f.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+                      }
+                    }
+                  } catch(e) {}
+                }
+
+                function nativeSeekTo(sec) {
+                  try {
+                    if (player && player.seekTo) {
+                      player.seekTo(sec, true);
+                    } else {
+                      var f = document.getElementById('player');
+                      if (f && f.contentWindow) {
+                        f.contentWindow.postMessage('{"event":"command","func":"seekTo","args":[' + sec + ', true]}', '*');
+                      }
+                    }
+                  } catch(e) {}
+                }
+
+                var tag = document.createElement('script');
+                tag.src = "https://www.youtube.com/iframe_api";
+                var firstScriptTag = document.getElementsByTagName('script')[0];
+                firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+              </script>
+            </body>
+            </html>
+        """.trimIndent()
+    }
+
+    fun resumeVideo() {
+        isPlayingState = true
+        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_pause)
+        binding.playerWebView.evaluateJavascript("nativePlay();", null)
+    }
+
+    fun pauseVideo() {
+        isPlayingState = false
+        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+        binding.playerWebView.evaluateJavascript("nativePause();", null)
+    }
+
+    fun seekTo(seconds: Float) {
+        binding.playerWebView.evaluateJavascript("nativeSeekTo($seconds);", null)
     }
 
     private fun checkSponsorSegments(second: Float) {
         if (sponsorSegments.isNotEmpty()) {
             for (seg in sponsorSegments) {
                 if (second >= seg.start && second < seg.end) {
-                    youTubePlayer?.seekTo(seg.end.toFloat())
+                    seekTo(seg.end.toFloat())
                     Toast.makeText(activity, "Skipped sponsor segment", Toast.LENGTH_SHORT).show()
                     break
                 }
@@ -317,14 +492,16 @@ class PlayerViewController(
     }
 
     fun closePlayer() {
-        youTubePlayer?.pause()
+        pauseVideo()
+        binding.playerWebView.loadUrl("about:blank")
+        currentVideo = null
         binding.root.visibility = View.GONE
     }
 
     private fun onPlaybackEnded() {
         if (isRepeatEnabled) {
-            youTubePlayer?.seekTo(0f)
-            youTubePlayer?.play()
+            seekTo(0f)
+            resumeVideo()
         } else if (currentRelatedVideos.isNotEmpty()) {
             val nextVideo = currentRelatedVideos.removeAt(0)
             Toast.makeText(activity, "Auto-playing next: ${nextVideo.title}", Toast.LENGTH_SHORT).show()
@@ -333,6 +510,14 @@ class PlayerViewController(
     }
 
     fun destroy() {
-        binding.youtubePlayerView.release()
+        try {
+            binding.playerWebView.stopLoading()
+            binding.playerWebView.loadUrl("about:blank")
+            binding.playerWebView.clearHistory()
+            binding.playerWebView.removeAllViews()
+            binding.playerWebView.destroy()
+        } catch (e: Exception) {
+            // ignore
+        }
     }
 }
