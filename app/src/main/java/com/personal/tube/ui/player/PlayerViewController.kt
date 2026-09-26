@@ -71,7 +71,16 @@ class PlayerViewController(
             useWideViewPort = true
             loadWithOverviewMode = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            userAgentString = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+        }
+
+        // Clean user agent by removing in-app webview flags ("; wv" and "Version/4.0")
+        // This presents a genuine Chrome Mobile browser to YouTube servers
+        val defaultUa = binding.playerWebView.settings.userAgentString ?: ""
+        if (defaultUa.isNotBlank()) {
+            val cleanUa = defaultUa
+                .replace("; wv", "")
+                .replace(Regex("Version/\\d+\\.\\d+\\s*"), "")
+            binding.playerWebView.settings.userAgentString = cleanUa
         }
 
         binding.playerWebView.webChromeClient = object : WebChromeClient() {
@@ -102,6 +111,22 @@ class PlayerViewController(
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
                 binding.playerBufferingSpinner.visibility = View.GONE
+
+                // If fallback m.youtube.com was loaded, hide the topbar and start video
+                if (url?.contains("m.youtube.com") == true) {
+                    val js = """
+                        (function() {
+                            try {
+                                var style = document.createElement('style');
+                                style.innerHTML = 'header, ytm-mobile-topbar-renderer, .mobile-topbar-header, ytm-pivot-bar-renderer { display: none !important; } body { padding-top: 0 !important; }';
+                                document.head.appendChild(style);
+                                var video = document.querySelector('video');
+                                if (video) { video.play(); }
+                            } catch(e) {}
+                        })();
+                    """.trimIndent()
+                    view?.evaluateJavascript(js, null)
+                }
             }
 
             override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
@@ -164,6 +189,14 @@ class PlayerViewController(
         fun onError(code: Int) {
             activity.runOnUiThread {
                 binding.playerBufferingSpinner.visibility = View.GONE
+                // Error 101 / 150 / 153 indicates owner disabled embedding on third-party sites
+                // Seamlessly fall back to official mobile YouTube stream
+                if (code == 101 || code == 150 || code == 153) {
+                    currentVideo?.let { v ->
+                        val fallbackUrl = "https://m.youtube.com/watch?v=${v.id}"
+                        binding.playerWebView.loadUrl(fallbackUrl)
+                    }
+                }
             }
         }
     }
@@ -298,11 +331,17 @@ class PlayerViewController(
             if (binding.playerBufferingSpinner.visibility == View.VISIBLE) {
                 binding.playerBufferingSpinner.visibility = View.GONE
             }
-        }, 3000)
+        }, 2500)
 
-        // Load video embed with Origin: https://www.youtube.com
+        // Load video embed using privacy-enhanced domain youtube-nocookie.com
         val embedHtml = buildEmbedHtml(video.id)
-        binding.playerWebView.loadDataWithBaseURL("https://www.youtube.com", embedHtml, "text/html", "UTF-8", null)
+        binding.playerWebView.loadDataWithBaseURL(
+            "https://www.youtube-nocookie.com",
+            embedHtml,
+            "text/html",
+            "UTF-8",
+            null
+        )
 
         // Log into Watch History Room DB
         activity.lifecycleScope.launch {
@@ -345,7 +384,7 @@ class PlayerViewController(
             </head>
             <body>
               <iframe id="player"
-                src="https://www.youtube.com/embed/$videoId?autoplay=1&playsinline=1&controls=1&fs=1&rel=0&modestbranding=1&enablejsapi=1&origin=https://www.youtube.com"
+                src="https://www.youtube-nocookie.com/embed/$videoId?autoplay=1&playsinline=1&controls=1&fs=1&rel=0&enablejsapi=1"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowfullscreen>
               </iframe>
