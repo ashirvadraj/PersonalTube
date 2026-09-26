@@ -5,12 +5,14 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import com.personal.tube.data.local.AppDatabase
+import com.personal.tube.util.UserManager
 
 class PersonalTubeApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
         instance = this
+        UserManager.init(this)
         createNotificationChannels()
         // Pre-warm database
         AppDatabase.getInstance(this)

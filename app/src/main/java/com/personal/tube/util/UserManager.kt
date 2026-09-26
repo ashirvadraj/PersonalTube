@@ -9,7 +9,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.personal.tube.PersonalTubeApp
+import java.util.Locale
 
 data class UserProfile(
     val id: String,
@@ -27,24 +27,26 @@ object UserManager {
     private const val KEY_EMAIL = "email"
     private const val KEY_PHOTO_URL = "photo_url"
 
-    private val prefs: SharedPreferences by lazy {
-        PersonalTubeApp.instance.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    }
+    private var prefs: SharedPreferences? = null
 
     private val _currentUser = MutableLiveData<UserProfile?>()
     val currentUser: LiveData<UserProfile?> get() = _currentUser
 
-    init {
-        loadUser()
+    fun init(context: Context) {
+        if (prefs == null) {
+            prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            loadUser()
+        }
     }
 
     private fun loadUser() {
-        val isLoggedIn = prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+        val p = prefs ?: return
+        val isLoggedIn = p.getBoolean(KEY_IS_LOGGED_IN, false)
         if (isLoggedIn) {
-            val id = prefs.getString(KEY_USER_ID, "") ?: ""
-            val name = prefs.getString(KEY_DISPLAY_NAME, "User") ?: "User"
-            val email = prefs.getString(KEY_EMAIL, "") ?: ""
-            val photo = prefs.getString(KEY_PHOTO_URL, null)
+            val id = p.getString(KEY_USER_ID, "") ?: ""
+            val name = p.getString(KEY_DISPLAY_NAME, "Gmail User") ?: "Gmail User"
+            val email = p.getString(KEY_EMAIL, "") ?: ""
+            val photo = p.getString(KEY_PHOTO_URL, null)
             _currentUser.postValue(UserProfile(id, name, email, photo))
         } else {
             _currentUser.postValue(null)
@@ -55,40 +57,57 @@ object UserManager {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestProfile()
-            .requestId()
             .build()
         return GoogleSignIn.getClient(activity, gso)
     }
 
     fun handleSignInSuccess(account: GoogleSignInAccount) {
+        val email = account.email ?: "user@gmail.com"
+        val displayName = account.displayName ?: email.substringBefore("@")
+        val photoUrl = account.photoUrl?.toString()
+
+        loginWithEmail(email, displayName, photoUrl)
+    }
+
+    fun loginWithEmail(email: String, displayName: String? = null, photoUrl: String? = null) {
+        val formattedName = displayName?.takeIf { it.isNotBlank() }
+            ?: email.substringBefore("@").replace(Regex("[._-]"), " ")
+                .split(" ")
+                .filter { it.isNotBlank() }
+                .joinToString(" ") { it.replaceFirstChar { c -> c.uppercase(Locale.getDefault()) } }
+                .ifBlank { "Gmail User" }
+
         val user = UserProfile(
-            id = account.id ?: "",
-            displayName = account.displayName ?: "Gmail User",
-            email = account.email ?: "",
-            photoUrl = account.photoUrl?.toString()
+            id = email,
+            displayName = formattedName,
+            email = email,
+            photoUrl = photoUrl
         )
 
-        prefs.edit()
-            .putBoolean(KEY_IS_LOGGED_IN, true)
-            .putString(KEY_USER_ID, user.id)
-            .putString(KEY_DISPLAY_NAME, user.displayName)
-            .putString(KEY_EMAIL, user.email)
-            .putString(KEY_PHOTO_URL, user.photoUrl)
-            .apply()
+        prefs?.edit()
+            ?.putBoolean(KEY_IS_LOGGED_IN, true)
+            ?.putString(KEY_USER_ID, user.id)
+            ?.putString(KEY_DISPLAY_NAME, user.displayName)
+            ?.putString(KEY_EMAIL, user.email)
+            ?.putString(KEY_PHOTO_URL, user.photoUrl)
+            ?.apply()
 
         _currentUser.postValue(user)
     }
 
-    fun signOut(activity: Activity, onComplete: () -> Unit = {}) {
-        val client = getGoogleSignInClient(activity)
-        client.signOut().addOnCompleteListener {
-            prefs.edit().clear().apply()
-            _currentUser.postValue(null)
-            onComplete()
+    fun signOut(context: Context, onComplete: () -> Unit = {}) {
+        try {
+            val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+            GoogleSignIn.getClient(context, gso).signOut()
+        } catch (e: Exception) {
+            // Ignore sign-out exceptions
         }
+        prefs?.edit()?.clear()?.apply()
+        _currentUser.postValue(null)
+        onComplete()
     }
 
     fun isLoggedIn(): Boolean {
-        return prefs.getBoolean(KEY_IS_LOGGED_IN, false)
+        return prefs?.getBoolean(KEY_IS_LOGGED_IN, false) ?: false
     }
 }

@@ -86,15 +86,14 @@
             android:layout_height="wrap_content"
             android:background="#000000">
 
-            <androidx.media3.ui.PlayerView
-                android:id="@+id/player_view"
+            <com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView
+                android:id="@+id/youtube_player_view"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 app:layout_constraintDimensionRatio="16:9"
                 app:layout_constraintTop_toTopOf="parent"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:use_controller="false"
-                app:resize_mode="fit" />
+                app:enableAutomaticInitialization="false" />
 
             <!-- Custom Controls Overlay -->
             <androidx.constraintlayout.widget.ConstraintLayout
@@ -102,8 +101,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:background="@color/yt_player_overlay"
-                app:layout_constraintTop_toTopOf="@id/player_view"
-                app:layout_constraintBottom_toBottomOf="@id/player_view">
+                app:layout_constraintTop_toTopOf="@id/youtube_player_view"
+                app:layout_constraintBottom_toBottomOf="@id/youtube_player_view">
 
                 <!-- Rewind 10s -->
                 <ImageView

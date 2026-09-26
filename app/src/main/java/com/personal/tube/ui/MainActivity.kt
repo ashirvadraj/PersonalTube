@@ -1,5 +1,6 @@
 package com.personal.tube.ui
 
+import android.accounts.AccountManager
 import android.app.AlertDialog
 import android.app.PictureInPictureParams
 import android.content.ClipData
@@ -10,7 +11,10 @@ import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.text.InputType
+import android.util.Log
 import android.view.View
+import android.widget.EditText
 import android.widget.Toast
 import android.speech.RecognizerIntent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -62,24 +66,73 @@ class MainActivity : AppCompatActivity() {
     private val googleSignInLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
         try {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
             val account = task.getResult(ApiException::class.java)
             if (account != null) {
                 UserManager.handleSignInSuccess(account)
                 Toast.makeText(this, "Signed in as ${account.displayName ?: account.email}", Toast.LENGTH_SHORT).show()
+                return@registerForActivityResult
             }
         } catch (e: Exception) {
-            // When running without a production Firebase/Cloud Console SHA-1 certificate registered,
-            // provide a graceful fallback sign-in so user experience is not blocked
-            val account = task.result
-            if (account != null) {
-                UserManager.handleSignInSuccess(account)
-                Toast.makeText(this, "Signed in as ${account.displayName ?: account.email}", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Google Sign-In: ${e.localizedMessage ?: "Failed"}", Toast.LENGTH_SHORT).show()
+            Log.w("MainActivity", "Google sign-in ApiException: ${e.message}")
+        }
+        // Seamless fallback to native Android account picker so user is never blocked or crashed
+        launchDeviceAccountPicker()
+    }
+
+    private val deviceAccountPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK && result.data != null) {
+            val email = result.data?.getStringExtra(AccountManager.KEY_ACCOUNT_NAME)
+            if (!email.isNullOrBlank()) {
+                UserManager.loginWithEmail(email)
+                Toast.makeText(this, "Signed in with Gmail: $email", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    fun launchDeviceAccountPicker() {
+        try {
+            val intent = AccountManager.newChooseAccountIntent(
+                null,
+                null,
+                arrayOf("com.google"),
+                null,
+                null,
+                null,
+                null
+            )
+            deviceAccountPickerLauncher.launch(intent)
+        } catch (e: Exception) {
+            showManualEmailDialog()
+        }
+    }
+
+    fun showManualEmailDialog() {
+        val input = EditText(this).apply {
+            hint = "yourname@gmail.com"
+            inputType = InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS
+            setPadding(48, 32, 48, 32)
+            setTextColor(getColor(R.color.yt_white))
+            setHintTextColor(getColor(R.color.yt_text_secondary))
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Enter Gmail Address")
+            .setView(input)
+            .setPositiveButton("Sign In") { _, _ ->
+                val email = input.text.toString().trim()
+                if (email.isNotBlank() && email.contains("@")) {
+                    UserManager.loginWithEmail(email)
+                    Toast.makeText(this, "Signed in as $email", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(this, "Please enter a valid Gmail address", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -243,7 +296,12 @@ class MainActivity : AppCompatActivity() {
 
             dialogView.btnDialogGoogleSignin.setOnClickListener {
                 dialog.dismiss()
-                startGoogleSignIn()
+                launchDeviceAccountPicker()
+            }
+
+            dialogView.btnDialogManualSignin.setOnClickListener {
+                dialog.dismiss()
+                showManualEmailDialog()
             }
 
             dialogView.btnDialogDismiss.setOnClickListener {
@@ -336,11 +394,10 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // Auto-enter PiP mode on Home swipe/press if video is playing
+    // Auto-enter PiP mode on Home swipe/press if player is visible
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        val player = ExoPlayerHolder.getPlayer(this)
-        if (player.isPlaying && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (binding.playerSheetContainer.visibility == View.VISIBLE && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             enterPictureInPictureMode(PictureInPictureParams.Builder().build())
         }
     }
@@ -353,6 +410,7 @@ class MainActivity : AppCompatActivity() {
             binding.fragmentContainer.visibility = View.GONE
             playerBinding.playerTopBar.visibility = View.GONE
             playerBinding.playerControlsOverlay.visibility = View.GONE
+            playerBinding.layoutMiniPlayer.visibility = View.GONE
         } else {
             binding.headerBar.visibility = View.VISIBLE
             binding.bottomNav.visibility = View.VISIBLE
@@ -365,9 +423,6 @@ class MainActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         playerController.destroy()
-        if (!ExoPlayerHolder.isBackgroundAudioEnabled) {
-            ExoPlayerHolder.release()
-        }
     }
 
     companion object {

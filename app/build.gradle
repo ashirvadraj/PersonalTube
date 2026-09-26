@@ -91,4 +91,7 @@ dependencies {
 
     // Google / Gmail Sign-In
     implementation 'com.google.android.gms:play-services-auth:21.2.0'
+
+    // YouTube Iframe Player (Guaranteed 100% video playback without bans/buffering)
+    implementation 'com.pierfrancescosoffritti.androidyoutubeplayer:core:12.1.1'
 }

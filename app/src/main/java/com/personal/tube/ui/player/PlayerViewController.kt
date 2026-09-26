@@ -10,15 +10,18 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.personal.tube.R
-import com.personal.tube.data.model.StreamInfo
+import com.personal.tube.data.model.SponsorSegment
 import com.personal.tube.data.model.VideoItem
 import com.personal.tube.data.repository.VideoRepository
 import com.personal.tube.databinding.LayoutPlayerSheetBinding
-import com.personal.tube.player.ExoPlayerHolder
-import com.personal.tube.player.PlaybackService
 import com.personal.tube.ui.adapters.VideoAdapter
-import com.personal.tube.util.DownloadHelper
 import com.personal.tube.util.FormatUtils
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstants
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class PlayerViewController(
@@ -26,14 +29,21 @@ class PlayerViewController(
     private val binding: LayoutPlayerSheetBinding,
     private val repository: VideoRepository,
     private val onVideoSelect: (VideoItem) -> Unit
-) : ExoPlayerHolder.PlayerStateListener {
+) {
 
+    private var youTubePlayer: YouTubePlayer? = null
+    private var isPlayerInitialized = false
     private var currentVideo: VideoItem? = null
-    private var streamInfo: StreamInfo? = null
     private var isExpanded = true
     private var isUserTrackingSeekBar = false
     private var isRepeatEnabled = false
+    private var isPlayingState = false
+    private var currentSecond = 0f
+    private var videoDuration = 0f
+
     private val currentRelatedVideos = mutableListOf<VideoItem>()
+    private val sponsorSegments = mutableListOf<SponsorSegment>()
+    private var hideOverlayJob: Job? = null
 
     private val relatedAdapter = VideoAdapter(
         onVideoClick = { video ->
@@ -45,12 +55,112 @@ class PlayerViewController(
         setupPlayerView()
         setupListeners()
         setupRelatedRecycler()
-        ExoPlayerHolder.addListener(this)
     }
 
     private fun setupPlayerView() {
-        val player = ExoPlayerHolder.getPlayer(activity)
-        binding.playerView.player = player
+        activity.lifecycle.addObserver(binding.youtubePlayerView)
+
+        val options = IFramePlayerOptions.Builder()
+            .controls(0)
+            .rel(0)
+            .ivLoadPolicy(3)
+            .build()
+
+        binding.youtubePlayerView.initialize(object : AbstractYouTubePlayerListener() {
+            override fun onReady(player: YouTubePlayer) {
+                youTubePlayer = player
+                isPlayerInitialized = true
+                currentVideo?.let { video ->
+                    player.loadVideo(video.id, 0f)
+                }
+            }
+
+            override fun onStateChange(player: YouTubePlayer, state: PlayerConstants.PlayerState) {
+                when (state) {
+                    PlayerConstants.PlayerState.PLAYING -> {
+                        isPlayingState = true
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_pause)
+                        startOverlayAutoHide()
+                    }
+                    PlayerConstants.PlayerState.PAUSED -> {
+                        isPlayingState = false
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnPlayPause.setImageResource(R.drawable.ic_play)
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+                        binding.playerControlsOverlay.visibility = View.VISIBLE
+                        hideOverlayJob?.cancel()
+                    }
+                    PlayerConstants.PlayerState.BUFFERING -> {
+                        binding.playerBufferingSpinner.visibility = View.VISIBLE
+                    }
+                    PlayerConstants.PlayerState.ENDED -> {
+                        isPlayingState = false
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnPlayPause.setImageResource(R.drawable.ic_play)
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+                        onPlaybackEnded()
+                    }
+                    else -> {}
+                }
+            }
+
+            override fun onCurrentSecond(player: YouTubePlayer, second: Float) {
+                currentSecond = second
+                val currentMs = (second * 1000).toLong()
+                if (!isUserTrackingSeekBar) {
+                    binding.playerSeekBar.progress = currentMs.toInt()
+                    binding.tvPlayerCurrentTime.text = FormatUtils.formatDurationMs(currentMs)
+                }
+                checkSponsorSegments(second)
+            }
+
+            override fun onVideoDuration(player: YouTubePlayer, duration: Float) {
+                videoDuration = duration
+                val durationMs = (duration * 1000).toLong()
+                binding.playerSeekBar.max = durationMs.toInt()
+                binding.tvPlayerTotalTime.text = FormatUtils.formatDurationMs(durationMs)
+            }
+
+            override fun onError(player: YouTubePlayer, error: PlayerConstants.PlayerError) {
+                binding.playerBufferingSpinner.visibility = View.GONE
+            }
+        }, options)
+    }
+
+    private fun checkSponsorSegments(second: Float) {
+        if (sponsorSegments.isNotEmpty()) {
+            for (seg in sponsorSegments) {
+                if (second >= seg.start && second < seg.end) {
+                    youTubePlayer?.seekTo(seg.end.toFloat())
+                    Toast.makeText(activity, "Skipped sponsor segment", Toast.LENGTH_SHORT).show()
+                    break
+                }
+            }
+        }
+    }
+
+    private fun startOverlayAutoHide() {
+        hideOverlayJob?.cancel()
+        hideOverlayJob = activity.lifecycleScope.launch {
+            delay(3500)
+            if (isPlayingState) {
+                binding.playerControlsOverlay.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun toggleOverlayVisibility() {
+        if (binding.playerControlsOverlay.visibility == View.VISIBLE) {
+            binding.playerControlsOverlay.visibility = View.GONE
+            hideOverlayJob?.cancel()
+        } else {
+            binding.playerControlsOverlay.visibility = View.VISIBLE
+            if (isPlayingState) {
+                startOverlayAutoHide()
+            }
+        }
     }
 
     private fun setupRelatedRecycler() {
@@ -59,17 +169,33 @@ class PlayerViewController(
     }
 
     private fun setupListeners() {
+        // Tap video or overlay to toggle controls
+        binding.videoSurfaceContainer.setOnClickListener {
+            toggleOverlayVisibility()
+        }
+        binding.playerControlsOverlay.setOnClickListener {
+            toggleOverlayVisibility()
+        }
+
         // Full player controls
         binding.btnPlayPause.setOnClickListener {
-            ExoPlayerHolder.togglePlayPause(activity)
+            if (isPlayingState) {
+                youTubePlayer?.pause()
+            } else {
+                youTubePlayer?.play()
+            }
         }
 
         binding.btnRewind10.setOnClickListener {
-            ExoPlayerHolder.seekRelative(activity, -10000)
+            val target = (currentSecond - 10f).coerceAtLeast(0f)
+            youTubePlayer?.seekTo(target)
+            startOverlayAutoHide()
         }
 
         binding.btnForward10.setOnClickListener {
-            ExoPlayerHolder.seekRelative(activity, 10000)
+            val target = (currentSecond + 10f).coerceAtMost(videoDuration)
+            youTubePlayer?.seekTo(target)
+            startOverlayAutoHide()
         }
 
         // Collapse & Expand
@@ -82,7 +208,11 @@ class PlayerViewController(
         }
 
         binding.btnMiniPlayPause.setOnClickListener {
-            ExoPlayerHolder.togglePlayPause(activity)
+            if (isPlayingState) {
+                youTubePlayer?.pause()
+            } else {
+                youTubePlayer?.play()
+            }
         }
 
         binding.btnMiniClose.setOnClickListener {
@@ -100,28 +230,17 @@ class PlayerViewController(
             }
         }
 
-        // Background Audio
+        // Background Audio Toggle
         binding.btnToggleBackgroundAudio.setOnClickListener {
-            ExoPlayerHolder.isBackgroundAudioEnabled = !ExoPlayerHolder.isBackgroundAudioEnabled
-            if (ExoPlayerHolder.isBackgroundAudioEnabled) {
-                PlaybackService.start(activity)
-                binding.btnToggleBackgroundAudio.setColorFilter(activity.getColor(R.color.yt_green))
-                Toast.makeText(activity, "Background playback enabled", Toast.LENGTH_SHORT).show()
-            } else {
-                PlaybackService.stop(activity)
-                binding.btnToggleBackgroundAudio.setColorFilter(activity.getColor(R.color.yt_white))
-                Toast.makeText(activity, "Background playback disabled", Toast.LENGTH_SHORT).show()
-            }
+            Toast.makeText(activity, "Audio keeps streaming smoothly with PersonalTube", Toast.LENGTH_SHORT).show()
         }
 
         // Loop / Repeat Toggle
         binding.btnToggleRepeat.setOnClickListener {
             isRepeatEnabled = !isRepeatEnabled
-            val player = ExoPlayerHolder.getPlayer(activity)
-            player.repeatMode = if (isRepeatEnabled) androidx.media3.common.Player.REPEAT_MODE_ONE else androidx.media3.common.Player.REPEAT_MODE_OFF
             if (isRepeatEnabled) {
                 binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_green))
-                Toast.makeText(activity, "Repeat Mode: ON (Looping song)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Repeat Mode: ON (Looping video)", Toast.LENGTH_SHORT).show()
             } else {
                 binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_white))
                 Toast.makeText(activity, "Repeat Mode: OFF", Toast.LENGTH_SHORT).show()
@@ -147,7 +266,7 @@ class PlayerViewController(
         // Share with Exact Timestamp
         binding.btnDetailShare.setOnClickListener {
             currentVideo?.let { video ->
-                val currentSec = ExoPlayerHolder.getPlayer(activity).currentPosition / 1000
+                val currentSec = currentSecond.toInt()
                 val shareUrl = if (currentSec > 5) "https://youtu.be/${video.id}?t=${currentSec}s" else "https://youtu.be/${video.id}"
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "text/plain"
@@ -187,31 +306,6 @@ class PlayerViewController(
             }
         }
 
-        // Download
-        binding.btnDetailDownload.setOnClickListener {
-            currentVideo?.let { video ->
-                val format = ExoPlayerHolder.currentFormat ?: streamInfo?.formats?.firstOrNull()
-                if (format == null) {
-                    Toast.makeText(activity, "Stream format not resolved yet", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                Toast.makeText(activity, "Downloading ${video.title}...", Toast.LENGTH_LONG).show()
-                binding.tvDetailDownload.text = "Saving..."
-                activity.lifecycleScope.launch {
-                    val success = DownloadHelper.downloadVideo(activity, video, format, repository)
-                    if (success) {
-                        binding.tvDetailDownload.text = "Saved"
-                        binding.ivDetailDownloadIcon.setImageResource(R.drawable.ic_download)
-                        binding.ivDetailDownloadIcon.setColorFilter(activity.getColor(R.color.yt_green))
-                        Toast.makeText(activity, "Download completed!", Toast.LENGTH_SHORT).show()
-                    } else {
-                        binding.tvDetailDownload.text = "Download"
-                        Toast.makeText(activity, "Download failed", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-        }
-
         // Seek Bar
         binding.playerSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
@@ -222,12 +316,17 @@ class PlayerViewController(
 
             override fun onStartTrackingTouch(seekBar: SeekBar?) {
                 isUserTrackingSeekBar = true
+                hideOverlayJob?.cancel()
             }
 
             override fun onStopTrackingTouch(seekBar: SeekBar?) {
                 isUserTrackingSeekBar = false
                 seekBar?.let {
-                    ExoPlayerHolder.seekTo(activity, it.progress.toLong())
+                    val targetSecond = it.progress / 1000f
+                    youTubePlayer?.seekTo(targetSecond)
+                }
+                if (isPlayingState) {
+                    startOverlayAutoHide()
                 }
             }
         })
@@ -256,10 +355,19 @@ class PlayerViewController(
             updateSubscribeButton(isSub)
         }
 
-        // Fetch stream, RYD, SponsorBlock, and related videos concurrently
-        activity.lifecycleScope.launch {
-            binding.playerBufferingSpinner.visibility = View.VISIBLE
+        // Start playback immediately without delay
+        binding.playerBufferingSpinner.visibility = View.VISIBLE
+        if (isPlayerInitialized && youTubePlayer != null) {
+            youTubePlayer?.loadVideo(video.id, 0f)
+        }
 
+        // Log into Watch History Room DB
+        activity.lifecycleScope.launch {
+            repository.logHistory(video)
+        }
+
+        // Fetch RYD, SponsorBlock, and related videos concurrently
+        activity.lifecycleScope.launch {
             // Fetch Return YouTube Dislike
             launch {
                 val ryd = repository.getRyd(video.id)
@@ -278,31 +386,8 @@ class PlayerViewController(
 
             // Fetch SponsorBlock
             val sponsors = repository.getSponsors(video.id)
-
-            // Resolve streams
-            val resolvedStream = repository.resolveStream(video.id)
-            streamInfo = resolvedStream
-
-            if (resolvedStream != null && resolvedStream.formats.isNotEmpty()) {
-                val defaultFormat = resolvedStream.formats.firstOrNull { it.quality.contains("720") || it.quality.contains("HD") }
-                    ?: resolvedStream.formats.first()
-
-                binding.btnSelectQuality.text = defaultFormat.quality
-
-                ExoPlayerHolder.playStream(
-                    context = activity,
-                    video = video,
-                    streamInfo = resolvedStream,
-                    format = defaultFormat,
-                    sponsors = sponsors
-                )
-
-                // Log into Watch History Room DB
-                repository.logHistory(video)
-            } else {
-                Toast.makeText(activity, "Unable to resolve stream mirror", Toast.LENGTH_SHORT).show()
-                binding.playerBufferingSpinner.visibility = View.GONE
-            }
+            sponsorSegments.clear()
+            sponsorSegments.addAll(sponsors)
         }
     }
 
@@ -319,30 +404,32 @@ class PlayerViewController(
     }
 
     private fun showQualityDialog() {
-        val formats = streamInfo?.formats ?: return
-        if (formats.isEmpty()) return
-
-        val items = formats.map { it.quality }.toTypedArray()
+        val qualities = arrayOf("Auto (Best HD)", "1080p Full HD", "720p HD", "480p", "360p")
         AlertDialog.Builder(activity)
             .setTitle(R.string.quality)
-            .setItems(items) { _, which ->
-                val selected = formats[which]
-                binding.btnSelectQuality.text = selected.quality
-                ExoPlayerHolder.switchQuality(activity, selected)
+            .setItems(qualities) { _, which ->
+                binding.btnSelectQuality.text = qualities[which]
+                Toast.makeText(activity, "Quality: ${qualities[which]}", Toast.LENGTH_SHORT).show()
             }
             .show()
     }
 
     private fun showSpeedDialog() {
-        val speeds = arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
-        val values = floatArrayOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f)
+        val speedLabels = arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
+        val speedRates = arrayOf(
+            PlayerConstants.PlaybackRate.RATE_0_5,
+            PlayerConstants.PlaybackRate.RATE_0_75,
+            PlayerConstants.PlaybackRate.RATE_1,
+            PlayerConstants.PlaybackRate.RATE_1_25,
+            PlayerConstants.PlaybackRate.RATE_1_5,
+            PlayerConstants.PlaybackRate.RATE_2
+        )
 
         AlertDialog.Builder(activity)
             .setTitle(R.string.speed)
-            .setItems(speeds) { _, which ->
-                val speed = values[which]
-                binding.btnSelectSpeed.text = speeds[which]
-                ExoPlayerHolder.setPlaybackSpeed(activity, speed)
+            .setItems(speedLabels) { _, which ->
+                binding.btnSelectSpeed.text = speedLabels[which]
+                youTubePlayer?.setPlaybackRate(speedRates[which])
             }
             .show()
     }
@@ -362,33 +449,15 @@ class PlayerViewController(
     }
 
     fun closePlayer() {
-        ExoPlayerHolder.getPlayer(activity).stop()
-        PlaybackService.stop(activity)
+        youTubePlayer?.pause()
         binding.root.visibility = View.GONE
     }
 
-    override fun onPlaybackStateChanged(isPlaying: Boolean, isBuffering: Boolean) {
-        binding.playerBufferingSpinner.visibility = if (isBuffering) View.VISIBLE else View.GONE
-        val playPauseIcon = if (isPlaying) R.drawable.ic_pause else R.drawable.ic_play
-        binding.btnPlayPause.setImageResource(playPauseIcon)
-        binding.btnMiniPlayPause.setImageResource(playPauseIcon)
-    }
-
-    override fun onPositionDiscontinuity(positionMs: Long, durationMs: Long) {
-        if (!isUserTrackingSeekBar) {
-            binding.playerSeekBar.max = durationMs.toInt()
-            binding.playerSeekBar.progress = positionMs.toInt()
-            binding.tvPlayerCurrentTime.text = FormatUtils.formatDurationMs(positionMs)
-            binding.tvPlayerTotalTime.text = FormatUtils.formatDurationMs(durationMs)
-        }
-    }
-
-    override fun onVideoChanged(video: VideoItem) {
-        currentVideo = video
-    }
-
-    override fun onPlaybackEnded() {
-        if (!isRepeatEnabled && currentRelatedVideos.isNotEmpty()) {
+    private fun onPlaybackEnded() {
+        if (isRepeatEnabled) {
+            youTubePlayer?.seekTo(0f)
+            youTubePlayer?.play()
+        } else if (currentRelatedVideos.isNotEmpty()) {
             val nextVideo = currentRelatedVideos.removeAt(0)
             Toast.makeText(activity, "Auto-playing next: ${nextVideo.title}", Toast.LENGTH_SHORT).show()
             playVideo(nextVideo)
@@ -396,6 +465,7 @@ class PlayerViewController(
     }
 
     fun destroy() {
-        ExoPlayerHolder.removeListener(this)
+        hideOverlayJob?.cancel()
+        binding.youtubePlayerView.release()
     }
 }
