@@ -92,7 +92,9 @@ class HomeFragment : Fragment() {
                 binding.swipeRefresh.isRefreshing = false
 
                 if (videos.isNotEmpty()) {
-                    videoAdapter.submitList(videos)
+                    videoAdapter.submitList(ArrayList(videos)) {
+                        binding.rvVideos.scrollToPosition(0)
+                    }
                     binding.rvVideos.visibility = View.VISIBLE
                     binding.layoutEmpty.visibility = View.GONE
                 } else {

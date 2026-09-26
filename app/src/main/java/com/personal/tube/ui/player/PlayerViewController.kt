@@ -3,7 +3,6 @@ package com.personal.tube.ui.player
 import android.app.AlertDialog
 import android.content.Intent
 import android.view.View
-import android.widget.SeekBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -20,8 +19,6 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.PlayerConstan
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.options.IFramePlayerOptions
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class PlayerViewController(
@@ -33,17 +30,15 @@ class PlayerViewController(
 
     private var youTubePlayer: YouTubePlayer? = null
     private var isPlayerInitialized = false
-    private var currentVideo: VideoItem? = null
-    private var isExpanded = true
-    private var isUserTrackingSeekBar = false
-    private var isRepeatEnabled = false
     private var isPlayingState = false
+    private var currentVideo: VideoItem? = null
+    private var pendingVideoToPlay: VideoItem? = null
+    private var isRepeatEnabled = false
     private var currentSecond = 0f
     private var videoDuration = 0f
 
     private val currentRelatedVideos = mutableListOf<VideoItem>()
     private val sponsorSegments = mutableListOf<SponsorSegment>()
-    private var hideOverlayJob: Job? = null
 
     private val relatedAdapter = VideoAdapter(
         onVideoClick = { video ->
@@ -52,115 +47,8 @@ class PlayerViewController(
     )
 
     init {
-        setupPlayerView()
         setupListeners()
         setupRelatedRecycler()
-    }
-
-    private fun setupPlayerView() {
-        activity.lifecycle.addObserver(binding.youtubePlayerView)
-
-        val options = IFramePlayerOptions.Builder()
-            .controls(0)
-            .rel(0)
-            .ivLoadPolicy(3)
-            .build()
-
-        binding.youtubePlayerView.initialize(object : AbstractYouTubePlayerListener() {
-            override fun onReady(player: YouTubePlayer) {
-                youTubePlayer = player
-                isPlayerInitialized = true
-                currentVideo?.let { video ->
-                    player.loadVideo(video.id, 0f)
-                }
-            }
-
-            override fun onStateChange(player: YouTubePlayer, state: PlayerConstants.PlayerState) {
-                when (state) {
-                    PlayerConstants.PlayerState.PLAYING -> {
-                        isPlayingState = true
-                        binding.playerBufferingSpinner.visibility = View.GONE
-                        binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_pause)
-                        startOverlayAutoHide()
-                    }
-                    PlayerConstants.PlayerState.PAUSED -> {
-                        isPlayingState = false
-                        binding.playerBufferingSpinner.visibility = View.GONE
-                        binding.btnPlayPause.setImageResource(R.drawable.ic_play)
-                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
-                        binding.playerControlsOverlay.visibility = View.VISIBLE
-                        hideOverlayJob?.cancel()
-                    }
-                    PlayerConstants.PlayerState.BUFFERING -> {
-                        binding.playerBufferingSpinner.visibility = View.VISIBLE
-                    }
-                    PlayerConstants.PlayerState.ENDED -> {
-                        isPlayingState = false
-                        binding.playerBufferingSpinner.visibility = View.GONE
-                        binding.btnPlayPause.setImageResource(R.drawable.ic_play)
-                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
-                        onPlaybackEnded()
-                    }
-                    else -> {}
-                }
-            }
-
-            override fun onCurrentSecond(player: YouTubePlayer, second: Float) {
-                currentSecond = second
-                val currentMs = (second * 1000).toLong()
-                if (!isUserTrackingSeekBar) {
-                    binding.playerSeekBar.progress = currentMs.toInt()
-                    binding.tvPlayerCurrentTime.text = FormatUtils.formatDurationMs(currentMs)
-                }
-                checkSponsorSegments(second)
-            }
-
-            override fun onVideoDuration(player: YouTubePlayer, duration: Float) {
-                videoDuration = duration
-                val durationMs = (duration * 1000).toLong()
-                binding.playerSeekBar.max = durationMs.toInt()
-                binding.tvPlayerTotalTime.text = FormatUtils.formatDurationMs(durationMs)
-            }
-
-            override fun onError(player: YouTubePlayer, error: PlayerConstants.PlayerError) {
-                binding.playerBufferingSpinner.visibility = View.GONE
-            }
-        }, options)
-    }
-
-    private fun checkSponsorSegments(second: Float) {
-        if (sponsorSegments.isNotEmpty()) {
-            for (seg in sponsorSegments) {
-                if (second >= seg.start && second < seg.end) {
-                    youTubePlayer?.seekTo(seg.end.toFloat())
-                    Toast.makeText(activity, "Skipped sponsor segment", Toast.LENGTH_SHORT).show()
-                    break
-                }
-            }
-        }
-    }
-
-    private fun startOverlayAutoHide() {
-        hideOverlayJob?.cancel()
-        hideOverlayJob = activity.lifecycleScope.launch {
-            delay(3500)
-            if (isPlayingState) {
-                binding.playerControlsOverlay.visibility = View.GONE
-            }
-        }
-    }
-
-    private fun toggleOverlayVisibility() {
-        if (binding.playerControlsOverlay.visibility == View.VISIBLE) {
-            binding.playerControlsOverlay.visibility = View.GONE
-            hideOverlayJob?.cancel()
-        } else {
-            binding.playerControlsOverlay.visibility = View.VISIBLE
-            if (isPlayingState) {
-                startOverlayAutoHide()
-            }
-        }
     }
 
     private fun setupRelatedRecycler() {
@@ -169,35 +57,6 @@ class PlayerViewController(
     }
 
     private fun setupListeners() {
-        // Tap video or overlay to toggle controls
-        binding.videoSurfaceContainer.setOnClickListener {
-            toggleOverlayVisibility()
-        }
-        binding.playerControlsOverlay.setOnClickListener {
-            toggleOverlayVisibility()
-        }
-
-        // Full player controls
-        binding.btnPlayPause.setOnClickListener {
-            if (isPlayingState) {
-                youTubePlayer?.pause()
-            } else {
-                youTubePlayer?.play()
-            }
-        }
-
-        binding.btnRewind10.setOnClickListener {
-            val target = (currentSecond - 10f).coerceAtLeast(0f)
-            youTubePlayer?.seekTo(target)
-            startOverlayAutoHide()
-        }
-
-        binding.btnForward10.setOnClickListener {
-            val target = (currentSecond + 10f).coerceAtMost(videoDuration)
-            youTubePlayer?.seekTo(target)
-            startOverlayAutoHide()
-        }
-
         // Collapse & Expand
         binding.btnCollapsePlayer.setOnClickListener {
             collapseToMiniPlayer()
@@ -219,7 +78,7 @@ class PlayerViewController(
             closePlayer()
         }
 
-        // PiP
+        // PiP Button
         binding.btnEnterPip.setOnClickListener {
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
                 activity.enterPictureInPictureMode(
@@ -232,7 +91,7 @@ class PlayerViewController(
 
         // Background Audio Toggle
         binding.btnToggleBackgroundAudio.setOnClickListener {
-            Toast.makeText(activity, "Audio keeps streaming smoothly with PersonalTube", Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Background audio playback is active", Toast.LENGTH_SHORT).show()
         }
 
         // Loop / Repeat Toggle
@@ -240,21 +99,11 @@ class PlayerViewController(
             isRepeatEnabled = !isRepeatEnabled
             if (isRepeatEnabled) {
                 binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_green))
-                Toast.makeText(activity, "Repeat Mode: ON (Looping video)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(activity, "Repeat Mode: ON (Looping song)", Toast.LENGTH_SHORT).show()
             } else {
                 binding.btnToggleRepeat.setColorFilter(activity.getColor(R.color.yt_white))
                 Toast.makeText(activity, "Repeat Mode: OFF", Toast.LENGTH_SHORT).show()
             }
-        }
-
-        // Quality Switcher
-        binding.btnSelectQuality.setOnClickListener {
-            showQualityDialog()
-        }
-
-        // Speed Switcher
-        binding.btnSelectSpeed.setOnClickListener {
-            showSpeedDialog()
         }
 
         // Description Expand
@@ -305,35 +154,11 @@ class PlayerViewController(
                 }
             }
         }
-
-        // Seek Bar
-        binding.playerSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) {
-                    binding.tvPlayerCurrentTime.text = FormatUtils.formatDurationMs(progress.toLong())
-                }
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {
-                isUserTrackingSeekBar = true
-                hideOverlayJob?.cancel()
-            }
-
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {
-                isUserTrackingSeekBar = false
-                seekBar?.let {
-                    val targetSecond = it.progress / 1000f
-                    youTubePlayer?.seekTo(targetSecond)
-                }
-                if (isPlayingState) {
-                    startOverlayAutoHide()
-                }
-            }
-        })
     }
 
     fun playVideo(video: VideoItem) {
         currentVideo = video
+        pendingVideoToPlay = video
         expandToFullPlayer()
 
         // Populate basic metadata immediately
@@ -355,10 +180,14 @@ class PlayerViewController(
             updateSubscribeButton(isSub)
         }
 
-        // Start playback immediately without delay
         binding.playerBufferingSpinner.visibility = View.VISIBLE
+
+        // Start playback
         if (isPlayerInitialized && youTubePlayer != null) {
             youTubePlayer?.loadVideo(video.id, 0f)
+            youTubePlayer?.play()
+        } else {
+            initYouTubePlayer(video)
         }
 
         // Log into Watch History Room DB
@@ -366,16 +195,14 @@ class PlayerViewController(
             repository.logHistory(video)
         }
 
-        // Fetch RYD, SponsorBlock, and related videos concurrently
+        // Fetch Return YouTube Dislike, SponsorBlock, and related videos concurrently
         activity.lifecycleScope.launch {
-            // Fetch Return YouTube Dislike
             launch {
                 val ryd = repository.getRyd(video.id)
                 binding.tvDetailLikes.text = FormatUtils.formatViews(ryd.likes).replace(" views", "")
                 binding.tvDetailDislikes.text = FormatUtils.formatViews(ryd.dislikes).replace(" views", "")
             }
 
-            // Fetch related feed
             launch {
                 val related = repository.getFeed("Trending")
                 val filtered = related.filter { it.id != video.id }
@@ -384,10 +211,84 @@ class PlayerViewController(
                 relatedAdapter.submitList(filtered)
             }
 
-            // Fetch SponsorBlock
             val sponsors = repository.getSponsors(video.id)
             sponsorSegments.clear()
             sponsorSegments.addAll(sponsors)
+        }
+    }
+
+    private fun initYouTubePlayer(initialVideo: VideoItem) {
+        if (isPlayerInitialized) return
+
+        activity.lifecycle.addObserver(binding.youtubePlayerView)
+
+        val options = IFramePlayerOptions.Builder()
+            .controls(1)
+            .rel(0)
+            .ivLoadPolicy(3)
+            .build()
+
+        binding.youtubePlayerView.initialize(object : AbstractYouTubePlayerListener() {
+            override fun onReady(player: YouTubePlayer) {
+                youTubePlayer = player
+                isPlayerInitialized = true
+                val target = pendingVideoToPlay ?: currentVideo ?: initialVideo
+                player.loadVideo(target.id, 0f)
+                player.play()
+            }
+
+            override fun onStateChange(player: YouTubePlayer, state: PlayerConstants.PlayerState) {
+                when (state) {
+                    PlayerConstants.PlayerState.PLAYING -> {
+                        isPlayingState = true
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_pause)
+                    }
+                    PlayerConstants.PlayerState.PAUSED -> {
+                        isPlayingState = false
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+                    }
+                    PlayerConstants.PlayerState.BUFFERING -> {
+                        binding.playerBufferingSpinner.visibility = View.VISIBLE
+                    }
+                    PlayerConstants.PlayerState.ENDED -> {
+                        isPlayingState = false
+                        binding.playerBufferingSpinner.visibility = View.GONE
+                        binding.btnMiniPlayPause.setImageResource(R.drawable.ic_play)
+                        onPlaybackEnded()
+                    }
+                    else -> {}
+                }
+            }
+
+            override fun onCurrentSecond(player: YouTubePlayer, second: Float) {
+                currentSecond = second
+                checkSponsorSegments(second)
+            }
+
+            override fun onVideoDuration(player: YouTubePlayer, duration: Float) {
+                videoDuration = duration
+            }
+
+            override fun onError(player: YouTubePlayer, error: PlayerConstants.PlayerError) {
+                binding.playerBufferingSpinner.visibility = View.GONE
+                currentVideo?.let { v ->
+                    player.cueVideo(v.id, 0f)
+                }
+            }
+        }, options)
+    }
+
+    private fun checkSponsorSegments(second: Float) {
+        if (sponsorSegments.isNotEmpty()) {
+            for (seg in sponsorSegments) {
+                if (second >= seg.start && second < seg.end) {
+                    youTubePlayer?.seekTo(seg.end.toFloat())
+                    Toast.makeText(activity, "Skipped sponsor segment", Toast.LENGTH_SHORT).show()
+                    break
+                }
+            }
         }
     }
 
@@ -403,46 +304,13 @@ class PlayerViewController(
         }
     }
 
-    private fun showQualityDialog() {
-        val qualities = arrayOf("Auto (Best HD)", "1080p Full HD", "720p HD", "480p", "360p")
-        AlertDialog.Builder(activity)
-            .setTitle(R.string.quality)
-            .setItems(qualities) { _, which ->
-                binding.btnSelectQuality.text = qualities[which]
-                Toast.makeText(activity, "Quality: ${qualities[which]}", Toast.LENGTH_SHORT).show()
-            }
-            .show()
-    }
-
-    private fun showSpeedDialog() {
-        val speedLabels = arrayOf("0.5x", "0.75x", "1.0x", "1.25x", "1.5x", "2.0x")
-        val speedRates = arrayOf(
-            PlayerConstants.PlaybackRate.RATE_0_5,
-            PlayerConstants.PlaybackRate.RATE_0_75,
-            PlayerConstants.PlaybackRate.RATE_1,
-            PlayerConstants.PlaybackRate.RATE_1_25,
-            PlayerConstants.PlaybackRate.RATE_1_5,
-            PlayerConstants.PlaybackRate.RATE_2
-        )
-
-        AlertDialog.Builder(activity)
-            .setTitle(R.string.speed)
-            .setItems(speedLabels) { _, which ->
-                binding.btnSelectSpeed.text = speedLabels[which]
-                youTubePlayer?.setPlaybackRate(speedRates[which])
-            }
-            .show()
-    }
-
     fun expandToFullPlayer() {
-        isExpanded = true
         binding.layoutExpandedPlayer.visibility = View.VISIBLE
         binding.layoutMiniPlayer.visibility = View.GONE
         binding.root.visibility = View.VISIBLE
     }
 
     fun collapseToMiniPlayer() {
-        isExpanded = false
         binding.layoutExpandedPlayer.visibility = View.GONE
         binding.layoutMiniPlayer.visibility = View.VISIBLE
         binding.root.visibility = View.VISIBLE
@@ -465,7 +333,6 @@ class PlayerViewController(
     }
 
     fun destroy() {
-        hideOverlayJob?.cancel()
         binding.youtubePlayerView.release()
     }
 }

@@ -45,17 +45,92 @@ class YoutubeExtractorService {
         currentInstanceIndex = (currentInstanceIndex + 1) % invidiousInstances.size
     }
 
+    private val allCategoryQueries = listOf(
+        "trending videos now",
+        "latest official music video",
+        "viral trending entertainment",
+        "popular videos today",
+        "latest technology reviews",
+        "top gaming highlights",
+        "trending full podcast episode",
+        "new official movie trailers",
+        "popular comedy sketches",
+        "top world news today",
+        "trending music hits 2026",
+        "best viral videos"
+    )
+
+    private val trendingQueries = listOf(
+        "trending videos today",
+        "viral trending now",
+        "most popular videos",
+        "trending worldwide"
+    )
+
+    private val musicQueries = listOf(
+        "latest official music video",
+        "top billboard hits",
+        "new trending songs",
+        "popular music video",
+        "best new songs"
+    )
+
+    private val gamingQueries = listOf(
+        "trending gaming videos",
+        "popular gameplay walkthrough",
+        "top gaming clips",
+        "latest video game review"
+    )
+
+    private val techQueries = listOf(
+        "latest technology reviews",
+        "new tech gadgets",
+        "smartphone review",
+        "top tech innovations"
+    )
+
+    private val newsQueries = listOf(
+        "breaking news today",
+        "world news headlines",
+        "top news stories",
+        "global news report"
+    )
+
+    private val podcastQueries = listOf(
+        "full podcast episode",
+        "trending podcast interview",
+        "popular podcast conversation",
+        "top podcast show"
+    )
+
+    private var feedRotationIndex = 0
+
     suspend fun getTrendingVideos(category: String = "All"): List<VideoItem> = withContext(Dispatchers.IO) {
-        val query = when (category) {
-            "Trending" -> "trending videos"
-            "Music" -> "official music video trending"
-            "Gaming" -> "gaming walkthrough gameplay trending"
-            "Technology" -> "latest technology gadget review"
-            "News" -> "breaking news today"
-            "Podcasts" -> "full podcast episode"
-            else -> "popular trending"
+        val pool = when (category) {
+            "Trending" -> trendingQueries
+            "Music" -> musicQueries
+            "Gaming" -> gamingQueries
+            "Technology" -> techQueries
+            "News" -> newsQueries
+            "Podcasts" -> podcastQueries
+            else -> allCategoryQueries
         }
-        return@withContext searchVideos(query)
+
+        feedRotationIndex++
+        val idx1 = (feedRotationIndex) % pool.size
+        val idx2 = (feedRotationIndex + 3) % pool.size
+
+        val q1 = pool[idx1]
+        val q2 = pool[idx2]
+
+        val res1 = searchVideos(q1)
+        val res2 = searchVideos(q2)
+
+        val combined = (res1 + res2).distinctBy { it.id }.shuffled()
+        if (combined.isNotEmpty()) {
+            return@withContext combined
+        }
+        return@withContext searchVideos("popular trending")
     }
 
     /**

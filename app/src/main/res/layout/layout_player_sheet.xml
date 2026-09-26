@@ -95,11 +95,24 @@
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:enableAutomaticInitialization="false" />
 
-            <!-- Custom Controls Overlay -->
+            <!-- Buffering Spinner centered directly over the player -->
+            <ProgressBar
+                android:id="@+id/player_buffering_spinner"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:indeterminateTint="@color/yt_red"
+                app:layout_constraintTop_toTopOf="@id/youtube_player_view"
+                app:layout_constraintBottom_toBottomOf="@id/youtube_player_view"
+                app:layout_constraintStart_toStartOf="@id/youtube_player_view"
+                app:layout_constraintEnd_toEndOf="@id/youtube_player_view"
+                android:visibility="gone" />
+
+            <!-- Custom Controls Overlay (hidden by default so touches hit player directly) -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:id="@+id/player_controls_overlay"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
+                android:visibility="gone"
                 android:background="@color/yt_player_overlay"
                 app:layout_constraintTop_toTopOf="@id/youtube_player_view"
                 app:layout_constraintBottom_toBottomOf="@id/youtube_player_view">
@@ -149,17 +162,7 @@
                     android:layout_marginStart="32dp"
                     android:contentDescription="Forward 10 seconds" />
 
-                <!-- Buffering Spinner -->
-                <ProgressBar
-                    android:id="@+id/player_buffering_spinner"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:indeterminateTint="@color/yt_red"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    android:visibility="gone" />
+
 
                 <!-- Speed & Quality Options -->
                 <LinearLayout
@@ -238,6 +241,7 @@
 
         <!-- Video Info & Related Videos ScrollView -->
         <androidx.core.widget.NestedScrollView
+            android:id="@+id/scroll_video_details"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1">
