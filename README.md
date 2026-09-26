@@ -17,6 +17,7 @@ Pre-compiled APK is ready to install:
 
 ## 🚀 Key Features
 
+- **🔐 Google / Gmail Sign-In**: Sign in directly with your Gmail account to manage your profile, avatar, and cloud synchronization for playlists and history.
 - **🚫 100% Ad-Free Video Streaming**: Direct stream demuxing bypasses all client-side video ads and tracking beacons.
 - **🎧 Background Audio & Lock Screen Playback**: Custom `PlaybackService` (`FOREGROUND_SERVICE_MEDIA_PLAYBACK`) keeps audio playing when your screen turns off or while multitasking.
 - **🖼️ Picture-in-Picture (PiP)**: Seamless transition into a floating resizable player when navigating home or tapping the PiP icon.

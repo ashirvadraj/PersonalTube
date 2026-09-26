@@ -74,6 +74,18 @@
                 android:background="?selectableItemBackgroundBorderless"
                 android:contentDescription="Settings" />
 
+            <!-- Google Account / Profile Button -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/btn_header_profile"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginStart="4dp"
+                android:scaleType="centerCrop"
+                android:src="@drawable/ic_account_circle"
+                android:background="?selectableItemBackgroundBorderless"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full"
+                android:contentDescription="Google Account" />
+
         </LinearLayout>
 
         <!-- Main Fragment Container (Home, Subscriptions, Library, Search) -->

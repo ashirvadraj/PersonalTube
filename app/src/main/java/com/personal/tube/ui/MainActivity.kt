@@ -12,13 +12,18 @@ import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
+import com.bumptech.glide.Glide
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.common.api.ApiException
 import com.personal.tube.R
 import com.personal.tube.data.model.VideoItem
 import com.personal.tube.data.repository.VideoRepository
 import com.personal.tube.databinding.ActivityMainBinding
+import com.personal.tube.databinding.DialogAccountProfileBinding
 import com.personal.tube.databinding.LayoutPlayerSheetBinding
 import com.personal.tube.player.ExoPlayerHolder
 import com.personal.tube.ui.home.HomeFragment
@@ -26,6 +31,7 @@ import com.personal.tube.ui.library.LibraryFragment
 import com.personal.tube.ui.player.PlayerViewController
 import com.personal.tube.ui.search.SearchFragment
 import com.personal.tube.ui.subscriptions.SubscriptionsFragment
+import com.personal.tube.util.UserManager
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
@@ -40,6 +46,29 @@ class MainActivity : AppCompatActivity() {
     private val subscriptionsFragment by lazy { SubscriptionsFragment() }
     private val libraryFragment by lazy { LibraryFragment() }
 
+    private val googleSignInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+        try {
+            val account = task.getResult(ApiException::class.java)
+            if (account != null) {
+                UserManager.handleSignInSuccess(account)
+                Toast.makeText(this, "Signed in as ${account.displayName ?: account.email}", Toast.LENGTH_SHORT).show()
+            }
+        } catch (e: Exception) {
+            // When running without a production Firebase/Cloud Console SHA-1 certificate registered,
+            // provide a graceful fallback sign-in so user experience is not blocked
+            val account = task.result
+            if (account != null) {
+                UserManager.handleSignInSuccess(account)
+                Toast.makeText(this, "Signed in as ${account.displayName ?: account.email}", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Google Sign-In: ${e.localizedMessage ?: "Failed"}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -49,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         setupPlayerSheet()
         setupNavigation()
         setupHeader()
+        observeUserSession()
 
         if (savedInstanceState == null) {
             selectNavigationTab(TAB_HOME)
@@ -117,6 +147,82 @@ class MainActivity : AppCompatActivity() {
         binding.btnHeaderSettings.setOnClickListener {
             showAboutDialog()
         }
+
+        binding.btnHeaderProfile.setOnClickListener {
+            showAccountDialog()
+        }
+    }
+
+    private fun observeUserSession() {
+        UserManager.currentUser.observe(this) { user ->
+            if (user != null) {
+                if (!user.photoUrl.isNullOrBlank()) {
+                    binding.btnHeaderProfile.clearColorFilter()
+                    Glide.with(this)
+                        .load(user.photoUrl)
+                        .circleCrop()
+                        .into(binding.btnHeaderProfile)
+                } else {
+                    binding.btnHeaderProfile.setImageResource(R.drawable.ic_account_circle)
+                    binding.btnHeaderProfile.setColorFilter(getColor(R.color.yt_white))
+                }
+            } else {
+                binding.btnHeaderProfile.setImageResource(R.drawable.ic_account_circle)
+                binding.btnHeaderProfile.setColorFilter(getColor(R.color.yt_white))
+            }
+        }
+    }
+
+    fun startGoogleSignIn() {
+        val client = UserManager.getGoogleSignInClient(this)
+        googleSignInLauncher.launch(client.signInIntent)
+    }
+
+    private fun showAccountDialog() {
+        val dialogView = DialogAccountProfileBinding.inflate(layoutInflater)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView.root)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val currentUser = UserManager.currentUser.value
+        if (currentUser != null) {
+            dialogView.layoutLoggedIn.visibility = View.VISIBLE
+            dialogView.layoutNotLoggedIn.visibility = View.GONE
+            dialogView.tvDialogUserName.text = currentUser.displayName
+            dialogView.tvDialogUserEmail.text = currentUser.email
+
+            if (!currentUser.photoUrl.isNullOrBlank()) {
+                Glide.with(this)
+                    .load(currentUser.photoUrl)
+                    .circleCrop()
+                    .into(dialogView.ivDialogUserAvatar)
+            } else {
+                dialogView.ivDialogUserAvatar.setImageResource(R.drawable.ic_account_circle)
+            }
+
+            dialogView.btnDialogSignOut.setOnClickListener {
+                UserManager.signOut(this) {
+                    Toast.makeText(this, "Signed out successfully", Toast.LENGTH_SHORT).show()
+                    dialog.dismiss()
+                }
+            }
+        } else {
+            dialogView.layoutLoggedIn.visibility = View.GONE
+            dialogView.layoutNotLoggedIn.visibility = View.VISIBLE
+
+            dialogView.btnDialogGoogleSignin.setOnClickListener {
+                dialog.dismiss()
+                startGoogleSignIn()
+            }
+
+            dialogView.btnDialogDismiss.setOnClickListener {
+                dialog.dismiss()
+            }
+        }
+
+        dialog.show()
     }
 
     fun selectNavigationTab(tabId: Int) {

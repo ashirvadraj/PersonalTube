@@ -8,11 +8,14 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
+import com.personal.tube.R
 import com.personal.tube.data.model.VideoItem
 import com.personal.tube.data.repository.VideoRepository
 import com.personal.tube.databinding.FragmentLibraryBinding
 import com.personal.tube.ui.MainActivity
 import com.personal.tube.ui.adapters.CompactVideoAdapter
+import com.personal.tube.util.UserManager
 import kotlinx.coroutines.launch
 
 class LibraryFragment : Fragment() {
@@ -121,6 +124,38 @@ class LibraryFragment : Fragment() {
                 )
             }
             bookmarksAdapter.submitList(videos)
+        }
+
+        // Google / Gmail Session State
+        UserManager.currentUser.observe(viewLifecycleOwner) { user ->
+            if (user != null) {
+                binding.layoutLibraryLoggedIn.visibility = View.VISIBLE
+                binding.layoutLibraryNotLoggedIn.visibility = View.GONE
+                binding.tvLibraryUserName.text = user.displayName
+                binding.tvLibraryUserEmail.text = user.email
+
+                if (!user.photoUrl.isNullOrBlank()) {
+                    Glide.with(this)
+                        .load(user.photoUrl)
+                        .circleCrop()
+                        .into(binding.ivLibraryAvatar)
+                } else {
+                    binding.ivLibraryAvatar.setImageResource(R.drawable.ic_account_circle)
+                }
+
+                binding.btnLibrarySignOut.setOnClickListener {
+                    UserManager.signOut(requireActivity()) {
+                        Toast.makeText(requireContext(), "Signed out from Google", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                binding.layoutLibraryLoggedIn.visibility = View.GONE
+                binding.layoutLibraryNotLoggedIn.visibility = View.VISIBLE
+
+                binding.btnLibrarySignIn.setOnClickListener {
+                    (activity as? MainActivity)?.startGoogleSignIn()
+                }
+            }
         }
     }
 
