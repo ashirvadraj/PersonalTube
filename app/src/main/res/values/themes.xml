@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.PersonalTube" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/yt_red</item>
+        <item name="colorPrimaryVariant">@color/yt_red_dark</item>
+        <item name="colorOnPrimary">@color/yt_white</item>
+        <item name="android:statusBarColor">@color/yt_black</item>
+        <item name="android:navigationBarColor">@color/yt_black</item>
+        <item name="android:windowBackground">@color/yt_black</item>
+        <item name="colorSurface">@color/yt_dark_surface</item>
+        <item name="colorOnSurface">@color/yt_text_primary</item>
+    </style>
+</resources>

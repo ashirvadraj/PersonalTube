@@ -1,0 +1,589 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/player_root_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/yt_black">
+
+    <!-- FULL EXPANDED PLAYER VIEW -->
+    <LinearLayout
+        android:id="@+id/layout_expanded_player"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="@color/yt_black">
+
+        <!-- Top Header for Player (Down arrow to collapse, PiP button, More) -->
+        <LinearLayout
+            android:id="@+id/player_top_bar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp"
+            android:background="@color/yt_black">
+
+            <ImageView
+                android:id="@+id/btn_collapse_player"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_close"
+                android:tint="@color/yt_white"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="Minimize" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Now Playing"
+                android:textColor="@color/yt_text_secondary"
+                android:textSize="14sp" />
+
+            <!-- PiP Button -->
+            <ImageView
+                android:id="@+id/btn_enter_pip"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_pip"
+                android:tint="@color/yt_white"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="Picture-in-Picture" />
+
+            <!-- Background Audio Toggle -->
+            <ImageView
+                android:id="@+id/btn_toggle_background_audio"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:padding="8dp"
+                android:src="@drawable/ic_headset"
+                android:tint="@color/yt_white"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="Background Audio" />
+
+        </LinearLayout>
+
+        <!-- Video Surface Container (16:9 Aspect Ratio) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/video_surface_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#000000">
+
+            <androidx.media3.ui.PlayerView
+                android:id="@+id/player_view"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="16:9"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:use_controller="false"
+                app:resize_mode="fit" />
+
+            <!-- Custom Controls Overlay -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/player_controls_overlay"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:background="@color/yt_player_overlay"
+                app:layout_constraintTop_toTopOf="@id/player_view"
+                app:layout_constraintBottom_toBottomOf="@id/player_view">
+
+                <!-- Rewind 10s -->
+                <ImageView
+                    android:id="@+id/btn_rewind_10"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_replay_10"
+                    android:tint="@color/yt_white"
+                    android:background="?selectableItemBackgroundBorderless"
+                    app:layout_constraintEnd_toStartOf="@id/btn_play_pause"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_marginEnd="32dp"
+                    android:contentDescription="Rewind 10 seconds" />
+
+                <!-- Play/Pause Button -->
+                <ImageView
+                    android:id="@+id/btn_play_pause"
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_pause"
+                    android:tint="@color/yt_white"
+                    android:background="?selectableItemBackgroundBorderless"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:contentDescription="Play/Pause" />
+
+                <!-- Forward 10s -->
+                <ImageView
+                    android:id="@+id/btn_forward_10"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:padding="8dp"
+                    android:src="@drawable/ic_forward_10"
+                    android:tint="@color/yt_white"
+                    android:background="?selectableItemBackgroundBorderless"
+                    app:layout_constraintStart_toEndOf="@id/btn_play_pause"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:layout_marginStart="32dp"
+                    android:contentDescription="Forward 10 seconds" />
+
+                <!-- Buffering Spinner -->
+                <ProgressBar
+                    android:id="@+id/player_buffering_spinner"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:indeterminateTint="@color/yt_red"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:visibility="gone" />
+
+                <!-- Speed & Quality Options -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_margin="8dp"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <TextView
+                        android:id="@+id/btn_select_speed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1.0x"
+                        android:textColor="@color/yt_white"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:padding="6dp"
+                        android:background="?selectableItemBackgroundBorderless" />
+
+                    <TextView
+                        android:id="@+id/btn_select_quality"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="HD"
+                        android:textColor="@color/yt_white"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        android:padding="6dp"
+                        android:background="?selectableItemBackgroundBorderless" />
+
+                </LinearLayout>
+
+                <!-- Bottom Bar: Time and Seekbar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="12dp"
+                    android:paddingBottom="4dp"
+                    app:layout_constraintBottom_toBottomOf="parent">
+
+                    <TextView
+                        android:id="@+id/tv_player_current_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="00:00"
+                        android:textColor="@color/yt_white"
+                        android:textSize="12sp" />
+
+                    <SeekBar
+                        android:id="@+id/player_seek_bar"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:progressTint="@color/yt_red"
+                        android:thumbTint="@color/yt_red"
+                        android:secondaryProgressTint="#66FFFFFF" />
+
+                    <TextView
+                        android:id="@+id/tv_player_total_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="00:00"
+                        android:textColor="@color/yt_white"
+                        android:textSize="12sp" />
+
+                </LinearLayout>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- Video Info & Related Videos ScrollView -->
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="12dp">
+
+                <!-- Title -->
+                <TextView
+                    android:id="@+id/tv_detail_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Video Title Here"
+                    android:textColor="@color/yt_white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:lineSpacingExtra="3dp" />
+
+                <!-- Views & Time -->
+                <TextView
+                    android:id="@+id/tv_detail_stats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="1.2M views · 3 days ago"
+                    android:textColor="@color/yt_text_secondary"
+                    android:textSize="12sp" />
+
+                <!-- Channel Bar -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="12dp">
+
+                    <com.google.android.material.imageview.ShapeableImageView
+                        android:id="@+id/iv_detail_channel_avatar"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/ic_subscriptions"
+                        android:tint="@color/yt_white"
+                        android:background="@color/yt_card_background"
+                        app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.Corner.Full" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="12dp"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tv_detail_channel_name"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Channel Name"
+                            android:textColor="@color/yt_white"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tv_detail_sub_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="4.5M subscribers"
+                            android:textColor="@color/yt_text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <!-- Subscribe Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_detail_subscribe"
+                        android:layout_width="wrap_content"
+                        android:layout_height="38dp"
+                        android:text="@string/subscribe"
+                        android:textColor="@color/yt_chip_selected_text"
+                        android:backgroundTint="@color/yt_white"
+                        android:textSize="12sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="19dp" />
+
+                </LinearLayout>
+
+                <!-- Actions Bar: Like/Dislike, Download, Share, Bookmark -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginTop="12dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <!-- Like / Dislike Pill -->
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_rounded_chip"
+                            android:paddingHorizontal="8dp">
+
+                            <ImageView
+                                android:id="@+id/btn_detail_like"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_thumb_up"
+                                android:tint="@color/yt_white"
+                                android:contentDescription="Like" />
+
+                            <TextView
+                                android:id="@+id/tv_detail_likes"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="125K"
+                                android:textColor="@color/yt_white"
+                                android:textSize="12sp" />
+
+                            <View
+                                android:layout_width="1dp"
+                                android:layout_height="18dp"
+                                android:layout_marginHorizontal="8dp"
+                                android:background="@color/yt_border" />
+
+                            <ImageView
+                                android:id="@+id/btn_detail_dislike"
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:src="@drawable/ic_thumb_down"
+                                android:tint="@color/yt_white"
+                                android:contentDescription="Dislike" />
+
+                            <TextView
+                                android:id="@+id/tv_detail_dislikes"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="1.2K"
+                                android:textColor="@color/yt_white"
+                                android:textSize="12sp" />
+
+                        </LinearLayout>
+
+                        <!-- Download Button -->
+                        <LinearLayout
+                            android:id="@+id/btn_detail_download"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_rounded_chip"
+                            android:paddingHorizontal="12dp">
+
+                            <ImageView
+                                android:id="@+id/iv_detail_download_icon"
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:src="@drawable/ic_download"
+                                android:tint="@color/yt_white"
+                                android:contentDescription="Download" />
+
+                            <TextView
+                                android:id="@+id/tv_detail_download"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="@string/download"
+                                android:textColor="@color/yt_white"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <!-- Bookmark / Watch Later -->
+                        <LinearLayout
+                            android:id="@+id/btn_detail_bookmark"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_rounded_chip"
+                            android:paddingHorizontal="12dp">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:src="@drawable/ic_bookmark"
+                                android:tint="@color/yt_white"
+                                android:contentDescription="Save" />
+
+                            <TextView
+                                android:id="@+id/tv_detail_bookmark"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Save"
+                                android:textColor="@color/yt_white"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <!-- Share Button -->
+                        <LinearLayout
+                            android:id="@+id/btn_detail_share"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:layout_marginStart="8dp"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical"
+                            android:background="@drawable/bg_rounded_chip"
+                            android:paddingHorizontal="12dp">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:src="@drawable/ic_share"
+                                android:tint="@color/yt_white"
+                                android:contentDescription="Share" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="@string/share"
+                                android:textColor="@color/yt_white"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+                </HorizontalScrollView>
+
+                <!-- Description Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:cardBackgroundColor="@color/yt_card_background"
+                    app:cardCornerRadius="8dp"
+                    app:strokeWidth="0dp">
+
+                    <TextView
+                        android:id="@+id/tv_detail_description"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="12dp"
+                        android:text="Video Description text..."
+                        android:textColor="@color/yt_text_secondary"
+                        android:textSize="13sp"
+                        android:maxLines="3"
+                        android:ellipsize="end" />
+
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Related Videos Section -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Up Next"
+                    android:textColor="@color/yt_white"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rv_related_videos"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:nestedScrollingEnabled="false" />
+
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+    </LinearLayout>
+
+    <!-- COLLAPSED MINI-PLAYER BAR (Anchored at bottom above nav) -->
+    <LinearLayout
+        android:id="@+id/layout_mini_player"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/bg_miniplayer"
+        android:paddingHorizontal="8dp"
+        android:visibility="gone">
+
+        <ImageView
+            android:id="@+id/iv_mini_thumbnail"
+            android:layout_width="80dp"
+            android:layout_height="48dp"
+            android:scaleType="centerCrop"
+            android:background="@color/yt_card_background"
+            android:contentDescription="Mini Thumbnail" />
+
+        <LinearLayout
+            android:id="@+id/layout_mini_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="10dp"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_mini_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Playing Video Title"
+                android:textColor="@color/yt_white"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/tv_mini_channel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Channel Name"
+                android:textColor="@color/yt_text_secondary"
+                android:textSize="11sp"
+                android:singleLine="true"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Mini Play/Pause -->
+        <ImageView
+            android:id="@+id/btn_mini_play_pause"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_pause"
+            android:tint="@color/yt_white"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Play/Pause" />
+
+        <!-- Mini Close -->
+        <ImageView
+            android:id="@+id/btn_mini_close"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:padding="8dp"
+            android:src="@drawable/ic_close"
+            android:tint="@color/yt_text_secondary"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="Close" />
+
+    </LinearLayout>
+
+</FrameLayout>

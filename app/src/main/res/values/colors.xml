@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="yt_black">#0F0F0F</color>
+    <color name="yt_dark_surface">#181818</color>
+    <color name="yt_card_background">#1F1F1F</color>
+    <color name="yt_chip_background">#272727</color>
+    <color name="yt_chip_selected">#FFFFFF</color>
+    <color name="yt_chip_selected_text">#0F0F0F</color>
+    <color name="yt_red">#FF0000</color>
+    <color name="yt_red_dark">#CC0000</color>
+    <color name="yt_white">#FFFFFF</color>
+    <color name="yt_text_primary">#F1F1F1</color>
+    <color name="yt_text_secondary">#AAAAAA</color>
+    <color name="yt_border">#2F2F2F</color>
+    <color name="yt_divider">#242424</color>
+    <color name="yt_player_overlay">#80000000</color>
+    <color name="yt_accent_blue">#3EA6FF</color>
+    <color name="yt_green">#2BA640</color>
+</resources>

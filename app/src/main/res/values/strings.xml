@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PersonalTube</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_subscriptions">Subscriptions</string>
+    <string name="nav_library">Library</string>
+
+    <string name="search_hint">Search YouTube...</string>
+    <string name="category_all">All</string>
+    <string name="category_trending">Trending</string>
+    <string name="category_music">Music</string>
+    <string name="category_gaming">Gaming</string>
+    <string name="category_podcasts">Podcasts</string>
+    <string name="category_tech">Technology</string>
+    <string name="category_news">News</string>
+
+    <string name="subscribe">Subscribe</string>
+    <string name="subscribed">Subscribed</string>
+    <string name="pip_mode">Picture in Picture</string>
+    <string name="background_audio">Background Audio</string>
+    <string name="download">Download</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="share">Share</string>
+    <string name="quality">Quality</string>
+    <string name="speed">Speed</string>
+    <string name="auto_quality">Auto</string>
+    <string name="normal_speed">1.0x</string>
+
+    <string name="history_title">History</string>
+    <string name="clear_history">Clear History</string>
+    <string name="downloads_title">Downloads</string>
+    <string name="bookmarks_title">Watch Later</string>
+    <string name="no_subscriptions">No subscriptions yet. Subscribe to your favorite creators!</string>
+    <string name="no_downloads">No downloaded videos. Download streams for offline viewing!</string>
+    <string name="no_history">No watch history recorded.</string>
+
+    <string name="playback_channel_name">Media Playback</string>
+    <string name="playback_channel_description">Provides lockscreen and background controls for PersonalTube playback</string>
+</resources>
